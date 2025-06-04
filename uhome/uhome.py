@@ -26,6 +26,8 @@ class Device:
         self.id = self.name.replace(' ', '_').lower() # TODO: ö, ä, ü, ... not handled!
         self.discovery_prefix = discovery_prefix
         self.will_topic = f'{self.discovery_prefix}/availability/{self.id}'
+        self.ha_status_topic = f'{self.discovery_prefix}/status'
+        self.ha_status = None  # Last received HA status ( b'online' / b'offline')
         self.device = kwargs
         self.device['name'] = self.name
         self.device['ids'] = self.id
@@ -53,6 +55,8 @@ class Device:
         self._mqttc.set_callback(self.mqtt_callback)
         self._mqttc.connect()
         self._mqttc.publish(self.will_topic, 'online', retain=True)
+        self._mqttc.subscribe(self.ha_status_topic)
+        
 
     def mqtt_callback(self, topic, msg):
         """
@@ -67,8 +71,13 @@ class Device:
         
         @param msg: The payload of the received MQTT message (bytes).
         """
+        decoded_topic = topic.decode()
+        if decoded_topic == self.ha_status_topic:
+            if msg == b'online':
+                self.discover_all()
+            self.ha_status = msg
         for entity in self._entities:
-            if topic.decode() == entity.topic:
+            if decoded_topic == entity.topic:
                 entity._action(msg.decode())
 
     def loop(self):
@@ -98,6 +107,7 @@ class Device:
         """
         for entity in self._entities:
             entity.discover()
+        
 
 class Entity(Device):
 
