@@ -1865,3 +1865,49 @@ class DeviceTracker(Entity):
             if not self._publish_state(json.dumps(attrs), self.conf['json_attr_t'], force=force):
                 ok = False
         return ok
+
+
+class Image(Entity):
+    """
+    MQTT image entity that can publish image URLs and/or raw image bytes.
+
+    Example:
+        image = uhome.Image(device, "Snapshot")
+        image.publish_url("https://example.local/latest.jpg")
+        image.publish_image(jpeg_bytes)
+    """
+
+    entity_type = 'image'
+
+    def __init__(self, device, entity_name, url_topic=True, image_topic=True, **kwargs):
+        if not url_topic and not image_topic:
+            raise ValueError('url_topic or image_topic must be enabled')
+        self._use_url_topic = url_topic
+        self._use_image_topic = image_topic
+        super().__init__(device, entity_name, **kwargs)
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        if self._use_url_topic and 'url_t' not in conf:
+            conf['url_t'] = self.topic_for('url')
+        if self._use_image_topic and 'img_t' not in conf:
+            conf['img_t'] = self.topic_for('image')
+        return conf
+
+    def publish_url(self, url, force=False):
+        """
+        Publish an image URL to the URL topic.
+        """
+        topic = self.conf.get('url_t')
+        if not topic:
+            return False
+        return self._publish_state(url, topic, force=force)
+
+    def publish_image(self, payload, retain=False):
+        """
+        Publish raw image bytes to the image topic without caching the payload.
+        """
+        topic = self.conf.get('img_t')
+        if not topic:
+            return False
+        return self.device.publish(topic, payload, retain=retain)
