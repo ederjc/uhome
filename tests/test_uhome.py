@@ -1,11 +1,26 @@
 import io
+import os
 import sys
 import unittest
-from contextlib import redirect_stderr
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "uhome"))
+
+class _RedirectStderr:
+    def __init__(self, new_target):
+        self._new_target = new_target
+        self._old_target = None
+
+    def __enter__(self):
+        self._old_target = sys.stderr
+        sys.stderr = self._new_target
+        return self._new_target
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        sys.stderr = self._old_target
+        return False
+
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "uhome"))
 
 import uhome
 
@@ -243,7 +258,7 @@ class UhomeReconnectTests(unittest.TestCase):
         mqtt = FakeMQTTClient()
         self.assertTrue(device.connect(mqtt))
         mqtt.deliver(button.get_topic(), "PRESS")
-        with redirect_stderr(io.StringIO()):
+        with _RedirectStderr(io.StringIO()):
             device.loop()
         self.assertTrue(device.is_connected)
 
