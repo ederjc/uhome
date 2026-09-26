@@ -1382,3 +1382,97 @@ class LawnMower(Entity):
     def _handle_dock(self, msg):
         if self._dock_action:
             self._dock_action(msg)
+class Vacuum(Entity):
+    """
+    MQTT vacuum entity using Home Assistant's state schema.
+
+    Example:
+        vacuum = uhome.Vacuum(device, 'Robot Vacuum', fanspd_lst=['quiet', 'max'])
+        vacuum.set_command_action(lambda command: handle_vacuum_command(command))
+        vacuum.set_fan_speed_action(lambda speed: set_fan_speed(speed))
+        vacuum.publish_state('cleaning', battery_level=82, fan_speed='quiet')
+
+    More information: https://www.home-assistant.io/integrations/vacuum.mqtt/
+    """
+
+    entity_type = 'vacuum'
+    _command_action = None
+    _fan_speed_action = None
+    _send_command_action = None
+    _clean_segments_action = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['schema'] = 'state'
+        conf['stat_t'] = self.topic_for('state')
+        conf['cmd_t'] = self.topic_for('set')
+        conf['set_fan_spd_t'] = self.topic_for('fan_speed/set')
+        conf['send_cmd_t'] = self.topic_for('command/send')
+        conf['cln_segmnts_cmd_t'] = self.topic_for('segments/clean')
+        return conf
+
+    def publish_state(self, state=None, battery_level=None, fan_speed=None, force=False, **attributes):
+        """Publish a state-schema vacuum JSON state payload."""
+        payload = {}
+        if state is not None:
+            payload['state'] = state
+        if battery_level is not None:
+            payload['battery_level'] = battery_level
+        if fan_speed is not None:
+            payload['fan_speed'] = fan_speed
+        for key in attributes:
+            payload[key] = attributes[key]
+        return self._publish_state(json.dumps(payload), self.conf['stat_t'], force=force)
+
+    def publish(self, state, force=False):
+        """Publish just the vacuum state string."""
+        return self.publish_state(state=state, force=force)
+
+    def get_command_topic(self):
+        return self.conf['cmd_t']
+
+    def get_fan_speed_topic(self):
+        return self.conf['set_fan_spd_t']
+
+    def get_send_command_topic(self):
+        return self.conf['send_cmd_t']
+
+    def get_clean_segments_topic(self):
+        return self.conf['cln_segmnts_cmd_t']
+
+    def set_command_action(self, action):
+        """Set the callback for standard vacuum command payloads."""
+        self._command_action = action
+        return self._subscribe(self.conf['cmd_t'], self._handle_command)
+
+    def set_fan_speed_action(self, action):
+        """Set the callback for fan speed command payloads."""
+        self._fan_speed_action = action
+        return self._subscribe(self.conf['set_fan_spd_t'], self._handle_fan_speed)
+
+    def set_send_command_action(self, action):
+        """Set the callback for custom send_command payloads."""
+        self._send_command_action = action
+        return self._subscribe(self.conf['send_cmd_t'], self._handle_send_command)
+
+    def set_clean_segments_action(self, action):
+        """Set the callback for clean segments command payloads."""
+        self._clean_segments_action = action
+        return self._subscribe(self.conf['cln_segmnts_cmd_t'], self._handle_clean_segments)
+
+    def _handle_command(self, msg):
+        if self._command_action:
+            self._command_action(msg)
+
+    def _handle_fan_speed(self, msg):
+        if self._fan_speed_action:
+            self._fan_speed_action(msg)
+
+    def _handle_send_command(self, msg):
+        if self._send_command_action:
+            self._send_command_action(msg)
+
+    def _handle_clean_segments(self, msg):
+        if self._clean_segments_action:
+            self._clean_segments_action(msg)
+
