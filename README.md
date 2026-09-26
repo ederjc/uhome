@@ -43,48 +43,84 @@ mip.install('github:ederjc/uhome/uhome/uhome.py')
 
 ## Usage in MicroPython
 
-1. Setup a device:
+The `example/example.py` file is the recommended starting point for resilient devices. In short:
+
+1. Connect Wi-Fi with a bounded timeout and retry Wi-Fi when `sta.isconnected()` becomes false.
+2. Use `umqtt.simple.MQTTClient` with a non-zero `keepalive`; do not use `umqtt.robust`, because its reconnect loop can block while uhome is also managing reconnects.
+3. Pass the MQTT client to `device.connect(mqttc)`. uhome configures the MQTT callback, retained availability, and last will message there.
+4. Register entities, then call `device.loop()` frequently from the main loop. `device.loop()` reconnects MQTT with backoff, restores subscriptions, re-sends discovery, and re-publishes cached states.
+5. Do all MQTT publishes in the main loop. Do not publish from `machine.Timer` IRQ callbacks; MQTT socket I/O is not IRQ-safe.
+6. Keep the main loop alive with `try`/`except`. If you enable `machine.WDT`, feed it deliberately and only after considering that watchdog resets can hide boot loops during debugging.
+
+Minimal pattern:
+
 ```
+import network
+import time
+from umqtt.simple import MQTTClient
 import uhome
-device = uhome.Device('Device Name')
-```
-At least one device is required as foundation to create entities.
 
-2. Create a MQTT client object:
-```
-mqttc = umqtt.simple.MQTTClient(device.id, <your mqtt broker address>, keepalive=60)
-```
-A MQTT client object is required to handle communication. Make sure to set a decent `keepalive` value in order to make the availability feature of the uhome module work properly. MQTT client IDs must be unique per physical device; reusing a client ID causes broker session takeover and flapping availability.
+import mqtt_secrets
+import wifi_secrets
 
-3. Let the device know that it should use the mqttc object to communicate:
-```
+sta = network.WLAN(network.STA_IF)
+sta.active(True)
+
+def sleep_ms(ms):
+    try:
+        time.sleep_ms(ms)
+    except AttributeError:
+        time.sleep(ms / 1000)
+
+def connect_wifi(timeout_ms=15000):
+    if sta.isconnected():
+        return True
+    sta.connect(wifi_secrets.ssid, wifi_secrets.psk)
+    deadline = uhome.ticks_add(uhome.ticks_ms(), timeout_ms)
+    while not sta.isconnected():
+        if uhome.ticks_diff(uhome.ticks_ms(), deadline) >= 0:
+            return False
+        sleep_ms(200)
+    return True
+
+device = uhome.Device("Device Name", connect_timeout=10)
+mqttc = MQTTClient(
+    device.id,
+    mqtt_secrets.broker,
+    port=mqtt_secrets.port,
+    user=mqtt_secrets.user,
+    password=mqtt_secrets.password,
+    keepalive=60,
+)
+
+signal_strength = uhome.Sensor(
+    device,
+    "Signal Strength",
+    device_class="signal_strength",
+    unit_of_measurement="dBm",
+    entity_category="diagnostic",
+)
+
+connect_wifi()
 device.connect(mqttc)
-```
-If the first broker connection fails, `connect()` returns `False` and `device.loop()` will retry with backoff. The method keeps the existing public API and can be called before or after entities are created.
 
-4. Create an entity:
-```
-signal_strength = uhome.Sensor(device, 'Signal Strength', device_class="signal_strength", unit_of_measurement='dBm', entity_category="diagnostic")
-```
-For demonstration we are using the Wi-Fi signal strength which can be aquired from the network API on MicroPython devices, so no external sensor is required.
-This will be a continual value, therefore we use the `uhome.Sensor()` class for creating a MQTT Sensor. If it would be a binary sensor like a window contact we would use `uhome.BinarySensor()`.
-The first argument is the device this entity will be assigned to, the second argument is the name of the entity. This name will also be used to derive the unique identifier. All other arguments are passed as keyword arguments directly into the Auto Discovery configuration. You can read up their meaning on the respective Home Assistant docs page, e.g. for [here](https://www.home-assistant.io/integrations/sensor.mqtt) for MQTT Sensor entities.
+next_publish = uhome.ticks_ms()
+while True:
+    try:
+        if not sta.isconnected():
+            connect_wifi()
 
-5. Discover
-Now the configuration of the entity can be sent to Home Assistant, the entity can be "auto-discovered":
+        mqtt_connected = device.loop()
+        now = uhome.ticks_ms()
+        if mqtt_connected and sta.isconnected() and uhome.ticks_diff(now, next_publish) >= 0:
+            next_publish = uhome.ticks_add(now, 30000)
+            signal_strength.publish("%.0f" % sta.status("rssi"))
+    except Exception as exc:
+        print("main loop exception:", exc)
+        sleep_ms(1000)
 ```
-device.discover_all()
-```
-Note that I am using `device.discover_all()` here instead of `signal_strength.discover()`. This simplifies the process if you have created multiple entities. One call of `device.discover_all()` will report all entities assigned to `device` to Home Assistant.
 
-6. Publish
-The device and entity will now appear in Home Assistant (under *Settings -> Integrations -> MQTT*). The value will show as unknown, because we did not publish any value to our signal strength entity, yet.
-We can do this using this command:
-```
-signal_strength.publish("%.0f" % sta.status('rssi'))
-```
-In this case `sta` is the network object used to connect to the Wi-Fi network. Have a look [here](https://github.com/ederjc/uhome/blob/master/example/example.py) for details.
-`sta.status('rssi')` gives the signal strength in dBm and the `:.0f` cuts all decimals.
+Entity `publish()` calls cache the last payload. If MQTT is disconnected, the state is republished automatically after `device.loop()` reconnects.
 
 ## Reconnect and availability behavior
 
