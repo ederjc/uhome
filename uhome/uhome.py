@@ -1195,6 +1195,45 @@ class TagScanner(Entity):
         return True
 
 
+class Notify(Entity):
+    """
+    MQTT notify entity that receives Home Assistant notification messages.
+
+    Example::
+
+        display = uhome.Notify(device, "Display")
+        display.set_action(lambda msg: print(msg))
+    """
+
+    entity_type = 'notify'
+    _action = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf["cmd_t"] = self.topic_for("command")
+        return conf
+
+    def get_topic(self):
+        return self.conf['cmd_t']
+
+    def set_action(self, action):
+        """
+        Subscribe to notifications sent by Home Assistant's notify service.
+        """
+        self._action = action
+        return self._subscribe(self.conf['cmd_t'], self._handle_action)
+
+    def republish(self):
+        """
+        Notify entities receive commands from Home Assistant and have no cached state.
+        """
+        return True
+
+    def _handle_action(self, msg):
+        if self._action:
+            self._action(msg)
+
+
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/
