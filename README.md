@@ -140,6 +140,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Text
 - Scene
 - Siren
+- Switch
 
 
 ## MQTT Select entity
@@ -194,6 +195,17 @@ Use `Siren` when Home Assistant should command an alarm output and the device sh
 alarm = uhome.Siren(device, 'Alarm Siren')
 alarm.set_action(lambda payload: set_siren(payload == 'ON'))
 alarm.publish('OFF')
+```
+
+### Switch
+
+Use `Switch` for controllable on/off outputs such as relays. State and command
+messages use separate topics and default to Home Assistant's `ON` / `OFF` payloads.
+
+```
+relay = uhome.Switch(device, 'Relay')
+relay.set_action(lambda msg: relay.publish(msg == 'ON'))
+relay.publish(False)
 ```
 
 ## Testing

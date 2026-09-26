@@ -795,6 +795,69 @@ class Button(Entity):
             self._action(msg)
 
 
+class Switch(Entity):
+    """
+    MQTT switch entity.
+
+    Example:
+        relay = uhome.Switch(device, 'Relay')
+        relay.set_action(lambda msg: relay.publish(msg == 'ON'))
+        relay.publish(False)
+
+    More information about MQTT Switch: https://www.home-assistant.io/integrations/switch.mqtt/
+    """
+
+    entity_type = 'switch'
+    _action = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['stat_t'] = self.topic_for('state')
+        conf['cmd_t'] = self.topic_for('set')
+        if 'pl_on' not in conf:
+            conf['pl_on'] = 'ON'
+        if 'pl_off' not in conf:
+            conf['pl_off'] = 'OFF'
+        return conf
+
+    def publish(self, state, force=False):
+        """
+        @brief Publish the switch state.
+
+        @param state: True/'ON' for on, False/'OFF' for off, or a custom payload.
+        @param force: Publish even if the payload did not change. Defaults to False.
+        """
+        if state is True:
+            payload = self.conf.get('pl_on', 'ON')
+        elif state is False:
+            payload = self.conf.get('pl_off', 'OFF')
+        else:
+            payload = state
+        return self._publish_state(payload, self.conf['stat_t'], force=force)
+
+    def on(self, force=False):
+        return self.publish(True, force=force)
+
+    def off(self, force=False):
+        return self.publish(False, force=force)
+
+    def get_topic(self):
+        return self.conf['cmd_t']
+
+    def set_action(self, action):
+        """
+        @brief Set the action to perform when Home Assistant commands the switch.
+
+        @param action: Callable receiving the command payload string.
+        """
+        self._action = action
+        return self._subscribe(self.conf['cmd_t'], self._handle_action)
+
+    def _handle_action(self, msg):
+        if self._action:
+            self._action(msg)
+
+
 class Number(Entity):
     """
     More information about MQTT Number: https://www.home-assistant.io/integrations/number.mqtt/
