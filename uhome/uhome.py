@@ -494,9 +494,6 @@ class Entity(Device):
         }
         if self.entity_type == 'sensor' or self.entity_type == 'binary_sensor':
             conf["stat_t"] = self.topic
-        elif self.entity_type == 'number':
-            conf["stat_t"] = self.topic
-            conf["cmd_t"] = self.topic  # TODO: split Number command and state topics in a follow-up PR.
         elif self.entity_type == 'button':
             conf["cmd_t"] = self.topic
         for arg, value in kwargs.items():
@@ -636,10 +633,21 @@ class Button(Entity):
 class Number(Entity):
     """
     More information about MQTT Number: https://www.home-assistant.io/integrations/number.mqtt/
+
+    Example:
+        level = Number(device, "Target Level", min=0, max=100, step=5)
+        level.set_action(lambda value: level.publish(value))
+        level.publish(50)
     """
 
     entity_type = 'number'
     _action = None
+
+    def make_conf(self, **kwargs):
+        conf = Entity.make_conf(self, **kwargs)
+        conf["stat_t"] = self.topic
+        conf["cmd_t"] = self.topic_for('set')
+        return conf
 
     def publish(self, payload, force=False):
         """
@@ -666,5 +674,33 @@ class Number(Entity):
         return self._subscribe(self.conf['cmd_t'], self._handle_action)
 
     def _handle_action(self, msg):
-        if self._action:
+        if self._action and self._is_valid_value(msg):
             self._action(msg)
+
+    def _is_valid_value(self, msg):
+        try:
+            value = float(msg)
+        except (TypeError, ValueError):
+            return False
+
+        min_value = self.conf.get('min')
+        max_value = self.conf.get('max')
+        step = self.conf.get('step')
+
+        try:
+            if min_value is not None and value < float(min_value):
+                return False
+            if max_value is not None and value > float(max_value):
+                return False
+            if step is not None:
+                step = float(step)
+                if step <= 0:
+                    return False
+                base = float(min_value) if min_value is not None else 0.0
+                steps = (value - base) / step
+                nearest = round(steps)
+                if abs(steps - nearest) > 0.000001:
+                    return False
+        except (TypeError, ValueError):
+            return False
+        return True
