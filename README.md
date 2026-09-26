@@ -143,6 +143,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Switch
 - Light
 - Lock
+- Fan
 
 
 ## MQTT Select entity
@@ -231,6 +232,20 @@ topics with default `LOCK` / `UNLOCK` commands and `LOCKED` / `UNLOCKED` states.
 door = uhome.Lock(device, 'Front Door')
 door.set_action(lambda msg: door.publish(msg == 'LOCK'))
 door.publish(False)
+```
+
+### Fan
+
+Use `Fan` for MQTT-controlled fans. On/off state is always enabled. Percentage,
+preset modes, oscillation, and direction can be enabled per entity when the device
+supports them.
+
+```
+fan = uhome.Fan(device, 'Ceiling Fan', percentage=True,
+                preset_modes=['auto', 'sleep'], oscillation=True, direction=True)
+fan.set_action(lambda feature, msg: print(feature, msg))
+fan.publish(True)
+fan.publish_percentage(50)
 ```
 
 ## Testing

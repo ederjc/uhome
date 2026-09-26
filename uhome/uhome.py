@@ -1009,6 +1009,136 @@ class Lock(Entity):
             self._action(msg)
 
 
+class Fan(Entity):
+    """
+    MQTT fan entity with optional percentage, preset, oscillation and direction features.
+
+    Example:
+        fan = uhome.Fan(device, 'Ceiling Fan', percentage=True,
+                        preset_modes=['auto', 'sleep'], oscillation=True, direction=True)
+        fan.set_action(lambda feature, msg: print(feature, msg))
+        fan.publish(True)
+        fan.publish_percentage(50)
+
+    More information about MQTT Fan: https://www.home-assistant.io/integrations/fan.mqtt/
+    """
+
+    entity_type = 'fan'
+    _action = None
+
+    def __init__(self, device, entity_name, percentage=False, preset_modes=None,
+                 oscillation=False, direction=False, **kwargs):
+        self._has_percentage = percentage
+        self._preset_modes = preset_modes
+        self._has_oscillation = oscillation
+        self._has_direction = direction
+        super().__init__(device, entity_name, **kwargs)
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['stat_t'] = self.topic_for('state')
+        conf['cmd_t'] = self.topic_for('set')
+        if 'pl_on' not in conf:
+            conf['pl_on'] = 'ON'
+        if 'pl_off' not in conf:
+            conf['pl_off'] = 'OFF'
+        if self._has_percentage:
+            conf['pct_stat_t'] = self.topic_for('percentage/state')
+            conf['pct_cmd_t'] = self.topic_for('percentage/set')
+        if self._preset_modes:
+            conf['pr_modes'] = self._preset_modes
+            conf['pr_mode_stat_t'] = self.topic_for('preset_mode/state')
+            conf['pr_mode_cmd_t'] = self.topic_for('preset_mode/set')
+        if self._has_oscillation:
+            conf['osc_stat_t'] = self.topic_for('oscillation/state')
+            conf['osc_cmd_t'] = self.topic_for('oscillation/set')
+            if 'pl_osc_on' not in conf:
+                conf['pl_osc_on'] = 'oscillate_on'
+            if 'pl_osc_off' not in conf:
+                conf['pl_osc_off'] = 'oscillate_off'
+        if self._has_direction:
+            conf['dir_stat_t'] = self.topic_for('direction/state')
+            conf['dir_cmd_t'] = self.topic_for('direction/set')
+        return conf
+
+    def publish(self, state, force=False):
+        """
+        @brief Publish the fan on/off state.
+        """
+        if state is True:
+            payload = self.conf.get('pl_on', 'ON')
+        elif state is False:
+            payload = self.conf.get('pl_off', 'OFF')
+        else:
+            payload = state
+        return self._publish_state(payload, self.conf['stat_t'], force=force)
+
+    def on(self, force=False):
+        return self.publish(True, force=force)
+
+    def off(self, force=False):
+        return self.publish(False, force=force)
+
+    def publish_percentage(self, percentage, force=False):
+        return self._publish_state(percentage, self.conf['pct_stat_t'], force=force)
+
+    def publish_preset_mode(self, preset_mode, force=False):
+        return self._publish_state(preset_mode, self.conf['pr_mode_stat_t'], force=force)
+
+    def publish_oscillation(self, oscillating, force=False):
+        if oscillating is True:
+            payload = self.conf.get('pl_osc_on', 'oscillate_on')
+        elif oscillating is False:
+            payload = self.conf.get('pl_osc_off', 'oscillate_off')
+        else:
+            payload = oscillating
+        return self._publish_state(payload, self.conf['osc_stat_t'], force=force)
+
+    def publish_direction(self, direction, force=False):
+        return self._publish_state(direction, self.conf['dir_stat_t'], force=force)
+
+    def get_topic(self):
+        return self.conf['cmd_t']
+
+    def set_action(self, action):
+        """
+        @brief Set the action to perform when Home Assistant commands the fan.
+
+        @param action: Callable receiving feature name and payload string.
+        """
+        self._action = action
+        ok = self._subscribe(self.conf['cmd_t'], self._handle_state_command)
+        if 'pct_cmd_t' in self.conf and not self._subscribe(self.conf['pct_cmd_t'], self._handle_percentage_command):
+            ok = False
+        if 'pr_mode_cmd_t' in self.conf and not self._subscribe(self.conf['pr_mode_cmd_t'], self._handle_preset_mode_command):
+            ok = False
+        if 'osc_cmd_t' in self.conf and not self._subscribe(self.conf['osc_cmd_t'], self._handle_oscillation_command):
+            ok = False
+        if 'dir_cmd_t' in self.conf and not self._subscribe(self.conf['dir_cmd_t'], self._handle_direction_command):
+            ok = False
+        return ok
+
+    def _dispatch(self, feature, msg):
+        if self._action:
+            self._action(feature, msg)
+
+    def _handle_state_command(self, msg):
+        self._dispatch('state', msg)
+
+    def _handle_percentage_command(self, msg):
+        self._dispatch('percentage', msg)
+
+    def _handle_preset_mode_command(self, msg):
+        self._dispatch('preset_mode', msg)
+
+    def _handle_oscillation_command(self, msg):
+        self._dispatch('oscillation', msg)
+
+    def _handle_direction_command(self, msg):
+        self._dispatch('direction', msg)
+
+
+
 class Number(Entity):
     """
     More information about MQTT Number: https://www.home-assistant.io/integrations/number.mqtt/
