@@ -691,6 +691,49 @@ class Scene(Entity):
             self._action(msg)
 
 
+class Siren(Entity):
+    """
+    MQTT Siren entity.
+
+    Example:
+        alarm = uhome.Siren(device, 'Alarm Siren')
+        alarm.set_action(lambda payload: set_siren(payload == 'ON'))
+        alarm.publish('OFF')
+
+    More information about MQTT Siren: https://www.home-assistant.io/integrations/siren.mqtt/
+    """
+
+    entity_type = 'siren'
+    _action = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['stat_t'] = self.topic
+        conf['cmd_t'] = self.topic_for('set')
+        return conf
+
+    def publish(self, payload, force=False):
+        """
+        @brief Publishes the siren state to the MQTT state topic if it changed.
+        """
+        return self._publish_state(payload, self.conf['stat_t'], force=force)
+
+    def get_topic(self):
+        return self.conf['cmd_t']
+
+    def set_action(self, action):
+        """
+        @brief Set the action to be performed when Home Assistant commands the siren.
+        """
+        self._action = action
+        return self._subscribe(self.conf['cmd_t'], self._handle_action)
+
+    def _handle_action(self, msg):
+        if self._action:
+            self._action(msg)
+
+
+
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/

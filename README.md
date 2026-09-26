@@ -139,6 +139,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Select
 - Text
 - Scene
+- Siren
 
 
 ## MQTT Select entity
@@ -183,6 +184,16 @@ Use `Scene` when Home Assistant should trigger a device-side scene or preset. MQ
 ```
 night = uhome.Scene(device, 'Night Mode', payload_on='ACTIVATE')
 night.set_action(lambda payload: apply_night_mode())
+```
+
+## MQTT Siren entity
+
+Use `Siren` when Home Assistant should command an alarm output and the device should publish the current siren state back.
+
+```
+alarm = uhome.Siren(device, 'Alarm Siren')
+alarm.set_action(lambda payload: set_siren(payload == 'ON'))
+alarm.publish('OFF')
 ```
 
 ## Testing
