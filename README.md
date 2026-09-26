@@ -137,6 +137,21 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Button
 - Number
 
+### Number
+
+`uhome.Number` exposes writable numeric values such as thresholds, set points, or calibration values via the Home Assistant MQTT Number platform. State and commands use separate MQTT topics: publish the current value with `publish()`, and receive requested changes by registering a callback with `set_action()`.
+
+```
+target_level = uhome.Number(device, "Target Level", min=0, max=100, step=5)
+
+def set_target_level(payload):
+    # Payload has already been parsed and checked against min/max/step.
+    target_level.publish(payload)
+
+target_level.set_action(set_target_level)
+target_level.publish(50)
+```
+
 ## Testing
 
 Desktop tests can be run from the repository root with:
@@ -165,3 +180,4 @@ docker stop uhome-mosquitto
 - [MQTT integration](https://www.home-assistant.io/integrations/mqtt)
 - [MQTT Sensor integration](https://www.home-assistant.io/integrations/sensor.mqtt)
 - [MQTT Binary Sensor integration](https://www.home-assistant.io/integrations/binary_sensor.mqtt)
+- [MQTT Number integration](https://www.home-assistant.io/integrations/number.mqtt)
