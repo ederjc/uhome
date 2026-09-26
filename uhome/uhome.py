@@ -733,6 +733,76 @@ class Siren(Entity):
             self._action(msg)
 
 
+class Cover(Entity):
+    """
+    More information about MQTT Covers: https://www.home-assistant.io/integrations/cover.mqtt/
+
+    Example:
+        cover = Cover(device, "Garage Door", position=True)
+        cover.set_action(open_cb, close_cb, stop_cb, set_position_cb)
+        cover.publish("closed")
+        cover.publish_position(0)
+    """
+
+    entity_type = 'cover'
+
+    def __init__(self, device, entity_name, position=False, **kwargs):
+        self._open_action = None
+        self._close_action = None
+        self._stop_action = None
+        self._set_position_action = None
+        super().__init__(device, entity_name, position=position, **kwargs)
+
+    def make_conf(self, position=False, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf.setdefault("stat_t", self.topic)
+        conf.setdefault("cmd_t", self.topic_for('command'))
+        conf.setdefault("pl_open", "OPEN")
+        conf.setdefault("pl_cls", "CLOSE")
+        conf.setdefault("pl_stop", "STOP")
+        if position:
+            conf.setdefault("pos_t", self.topic_for('position'))
+            conf.setdefault("set_pos_t", self.topic_for('set_position'))
+        return conf
+
+    def publish(self, payload, force=False):
+        """
+        Publish the cover state (for example "open", "closed", "opening", "closing" or "stopped").
+        """
+        return self._publish_state(payload, self.conf['stat_t'], force=force)
+
+    def publish_position(self, position, force=False):
+        """
+        Publish the optional current position (0 closed, 100 open).
+        """
+        return self._publish_state(position, self.conf['pos_t'], force=force)
+
+    def set_action(self, open_action=None, close_action=None, stop_action=None, set_position_action=None):
+        """
+        Set callbacks for open, close, stop, and optional set-position commands.
+        """
+        self._open_action = open_action
+        self._close_action = close_action
+        self._stop_action = stop_action
+        self._set_position_action = set_position_action
+        ok = self._subscribe(self.conf['cmd_t'], self._handle_command)
+        if set_position_action and 'set_pos_t' in self.conf:
+            ok = self._subscribe(self.conf['set_pos_t'], self._handle_position) and ok
+        return ok
+
+    def _handle_command(self, msg):
+        if msg == self.conf.get('pl_open') and self._open_action:
+            self._open_action(msg)
+        elif msg == self.conf.get('pl_cls') and self._close_action:
+            self._close_action(msg)
+        elif msg == self.conf.get('pl_stop') and self._stop_action:
+            self._stop_action(msg)
+
+    def _handle_position(self, msg):
+        if self._set_position_action:
+            self._set_position_action(msg)
+
+
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/

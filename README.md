@@ -148,6 +148,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Alarm Control Panel
 - Lawn Mower
 - Vacuum
+- Cover
 
 
 ## MQTT Select entity
@@ -297,6 +298,16 @@ vacuum.set_command_action(lambda command: handle_vacuum_command(command))
 vacuum.set_fan_speed_action(lambda speed: set_fan_speed(speed))
 vacuum.publish_state('cleaning', battery_level=82, fan_speed='quiet')
 ```
+
+## Cover entity
+
+Use `Cover` for MQTT covers such as garage doors, blinds, or shades. It exposes open, close, and stop commands, plus optional current and set-position topics when `position=True`.
+
+```
+cover = uhome.Cover(device, 'Garage Door', position=True)
+cover.set_action(open_cb, close_cb, stop_cb, set_position_cb)
+cover.publish('closed')
+cover.publish_position(0)
 ```
 
 ## Testing
