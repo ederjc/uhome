@@ -1911,3 +1911,39 @@ class Image(Entity):
         if not topic:
             return False
         return self.device.publish(topic, payload, retain=retain)
+
+
+class Camera(Entity):
+    """
+    MQTT camera entity that publishes raw JPEG bytes on a camera topic.
+
+    Example:
+        camera = uhome.Camera(device, "Camera")
+        camera.publish(jpeg_bytes)
+    """
+
+    entity_type = 'camera'
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        if 'topic' not in conf:
+            conf['topic'] = self.topic_for('image')
+        if 'encoding' not in conf:
+            conf['encoding'] = ''
+        return conf
+
+    def publish(self, payload, retain=False, cache=False, force=False):
+        """
+        Publish raw JPEG bytes as-is; large images are not cached unless cache=True.
+        """
+        topic = self.conf['topic']
+        if cache:
+            self._cached_image_payload = payload
+            self._cached_image_retain = retain
+        return self.device.publish(topic, payload, retain=retain)
+
+    def republish(self):
+        payload = getattr(self, '_cached_image_payload', None)
+        if payload is None:
+            return True
+        return self.device.publish(self.conf['topic'], payload, retain=getattr(self, '_cached_image_retain', False))

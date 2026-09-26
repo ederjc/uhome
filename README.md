@@ -155,6 +155,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Update
 - Device Tracker
 - Image
+- Camera
 
 
 ## MQTT Select entity
@@ -384,6 +385,15 @@ Use `Image` to expose an MQTT image entity. It can publish an image URL, raw ima
 snapshot = uhome.Image(device, 'Snapshot')
 snapshot.publish_url('https://example.local/snapshot.jpg')
 snapshot.publish_image(jpeg_bytes)
+```
+
+### Camera
+
+Use `Camera` to publish raw JPEG bytes to Home Assistant's MQTT camera platform. Payloads are sent as bytes without `str()` conversion and are not cached for reconnect republish unless explicitly requested.
+
+```python
+camera = uhome.Camera(device, 'Front Door')
+camera.publish(jpeg_bytes)
 ```
 
 ## Testing
