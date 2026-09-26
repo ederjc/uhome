@@ -153,6 +153,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Climate
 - Humidifier
 - Update
+- Device Tracker
 
 
 ## MQTT Select entity
@@ -362,6 +363,16 @@ Use `Update` to expose firmware or software update availability. The entity publ
 firmware = uhome.Update(device, 'Firmware')
 firmware.set_install_action(lambda msg: start_firmware_update())
 firmware.publish('1.0.0', '1.1.0', title='Firmware 1.1.0')
+```
+
+### Device Tracker
+
+Use `DeviceTracker` to publish `home` or `not_home` presence. Optional JSON attributes can include GPS coordinates for map-based tracking.
+
+```python
+phone = uhome.DeviceTracker(device, 'Phone')
+phone.publish('home', latitude=48.137, longitude=11.575, gps_accuracy=15)
+phone.publish('not_home')
 ```
 
 ## Testing

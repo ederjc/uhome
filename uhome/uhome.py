@@ -1825,3 +1825,45 @@ class Update(Entity):
     def _handle_install(self, msg):
         if self._action and msg == self.conf.get('pl_inst', 'INSTALL'):
             self._action(msg)
+
+
+class DeviceTracker(Entity):
+    """
+    MQTT device tracker entity for home/not_home presence with optional GPS attributes.
+
+    Example:
+        tracker = uhome.DeviceTracker(device, "Phone")
+        tracker.publish("home", latitude=48.1, longitude=11.6)
+    """
+
+    entity_type = 'device_tracker'
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['stat_t'] = self.topic
+        if 'json_attr_t' not in conf:
+            conf['json_attr_t'] = self.topic_for('attributes')
+        return conf
+
+    def publish(self, state, attributes=None, latitude=None, longitude=None,
+                gps_accuracy=None, force=False):
+        """
+        Publish home/not_home state and optional JSON attributes.
+        """
+        ok = self._publish_state(state, self.conf['stat_t'], force=force)
+        attrs = None
+        if attributes is not None:
+            attrs = dict(attributes)
+        elif latitude is not None or longitude is not None or gps_accuracy is not None:
+            attrs = {}
+        if attrs is not None:
+            if latitude is not None:
+                attrs['latitude'] = latitude
+            if longitude is not None:
+                attrs['longitude'] = longitude
+            if gps_accuracy is not None:
+                attrs['gps_accuracy'] = gps_accuracy
+            if not self._publish_state(json.dumps(attrs), self.conf['json_attr_t'], force=force):
+                ok = False
+        return ok
+
