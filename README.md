@@ -17,7 +17,7 @@ Behind the scenes, the module wraps the handling of `.json` configuration messag
 
 ## Dependencies
 
-This module needs an MQTT client object from the [umqtt module](https://github.com/micropython/micropython-lib/tree/master/micropython/umqtt.simple/umqtt) for MicroPython.
+This module needs an MQTT client object from the [umqtt.simple module](https://github.com/micropython/micropython-lib/tree/master/micropython/umqtt.simple/umqtt) for MicroPython. uhome manages reconnects, subscriptions, and availability itself, so `umqtt.simple` is recommended over `umqtt.robust` for new projects.
 It can be installed in MicroPython as follows:
 
 ```
@@ -46,12 +46,13 @@ At least one device is required as foundation to create entities.
 ```
 mqttc = umqtt.simple.MQTTClient(device.id, <your mqtt broker address>, keepalive=60)
 ```
-A MQTT client object is required to handle communication. Make sure to set a decent `keepalive` value in order to make the availability feature of the uhome module work properly.
+A MQTT client object is required to handle communication. Make sure to set a decent `keepalive` value in order to make the availability feature of the uhome module work properly. MQTT client IDs must be unique per physical device; reusing a client ID causes broker session takeover and flapping availability.
 
 3. Let the device know that it should use the mqttc object to communicate:
 ```
 device.connect(mqttc)
 ```
+If the first broker connection fails, `connect()` returns `False` and `device.loop()` will retry with backoff. The method keeps the existing public API and can be called before or after entities are created.
 
 4. Create an entity:
 ```
@@ -72,10 +73,33 @@ Note that I am using `device.discover_all()` here instead of `signal_strength.di
 The device and entity will now appear in Home Assistant (under *Settings -> Integrations -> MQTT*). The value will show as unknown, because we did not publish any value to our signal strength entity, yet.
 We can do this using this command:
 ```
-signal_strength.publish(f'{sta.status('rssi'):.0f}')
+signal_strength.publish("%.0f" % sta.status('rssi'))
 ```
 In this case `sta` is the network object used to connect to the Wi-Fi network. Have a look [here](https://github.com/ederjc/uhome/blob/master/example/example.py) for details.
 `sta.status('rssi')` gives the signal strength in dBm and the `:.0f` cuts all decimals.
+
+## Reconnect and availability behavior
+
+uhome publishes a retained `online` message to the device availability topic after every successful connection and configures an `offline` retained last will. After reconnects it restores all subscriptions, re-sends discovery messages, and force re-publishes cached entity states so Home Assistant does not leave entities `unavailable` or `unknown`.
+
+Call `device.loop()` frequently from the main loop. Do not call it from timer IRQs: MQTT socket I/O, callbacks, discovery publishing, and reconnects are not IRQ-safe.
+
+When Home Assistant publishes its birth message (`online` on `homeassistant/status`), uhome re-sends discovery and re-publishes cached states because Home Assistant may have forgotten non-retained state after restart.
+
+## Supported entities
+
+- Sensor
+- Binary Sensor
+- Button
+- Number
+
+## Testing
+
+Desktop tests can be run from the repository root with:
+
+```
+python -m unittest discover -s tests -v
+```
 
 ## More Information
 ### Home Assistant
