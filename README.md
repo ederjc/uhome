@@ -9,6 +9,7 @@
 [![mpy-cross](https://github.com/ederjc/uhome/actions/workflows/mpy-cross.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/mpy-cross.yml)
 [![lint](https://github.com/ederjc/uhome/actions/workflows/lint.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/lint.yml)
 ![coverage](https://raw.githubusercontent.com/ederjc/uhome/master/coverage.svg)
+[![MicroPython tests](https://github.com/ederjc/uhome/actions/workflows/test-micropython.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/test-micropython.yml)
 
 A MicroPython module for simplified Home Assistant MQTT Auto Discovery.
 
@@ -106,6 +107,10 @@ Desktop tests can be run from the repository root with:
 ```
 python -m unittest discover -s tests -v
 ```
+
+GitHub Actions also builds the pinned MicroPython unix port and runs the same
+`tests/test_*.py` files under MicroPython using `mip`-installed
+`unittest-discover`.
 
 ## More Information
 ### Home Assistant

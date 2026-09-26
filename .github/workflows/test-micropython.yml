@@ -1,0 +1,81 @@
+name: MicroPython tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: MicroPython unix port
+    runs-on: ubuntu-latest
+    env:
+      MICROPYTHON_TAG: v1.29.0
+      UNITTEST_DISCOVER_VERSION: 0.1.3
+      MICROPYTHON_DIR: .cache/micropython-v1.29.0
+      MICROPYTHON_PACKAGES: .cache/micropython-packages-v1.29.0
+      MICROPYTHON_BIN: .cache/micropython-v1.29.0/ports/unix/build-standard/micropython
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install unix-port build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential pkg-config libffi-dev
+
+      - name: Cache MicroPython unix build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache/micropython-v1.29.0
+            .cache/micropython-packages-v1.29.0
+          key: ${{ runner.os }}-micropython-unix-v1.29.0-uhome-v1
+
+      - name: Build pinned MicroPython unix port
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if [ ! -x "${MICROPYTHON_BIN}" ]; then
+            rm -rf "${MICROPYTHON_DIR}"
+            git clone --branch "${MICROPYTHON_TAG}" --depth 1 https://github.com/micropython/micropython.git "${MICROPYTHON_DIR}"
+            git -C "${MICROPYTHON_DIR}" submodule update --init lib/micropython-lib
+            make -C "${MICROPYTHON_DIR}/mpy-cross"
+            make -C "${MICROPYTHON_DIR}/ports/unix" submodules
+            make -C "${MICROPYTHON_DIR}/ports/unix"
+          fi
+          "${MICROPYTHON_BIN}" --version
+
+      - name: Install MicroPython test packages
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if [ ! -f "${MICROPYTHON_PACKAGES}/unittest/__main__.py" ]; then
+            rm -rf "${MICROPYTHON_PACKAGES}"
+            mkdir -p "${MICROPYTHON_PACKAGES}"
+            "${MICROPYTHON_BIN}" -m mip install --target "${MICROPYTHON_PACKAGES}" "unittest-discover@${UNITTEST_DISCOVER_VERSION}"
+          fi
+
+      - name: Run tests under MicroPython
+        shell: bash
+        run: |
+          set -euxo pipefail
+          # unittest-discover adds the `micropython -m unittest` entry point.
+          # Passing file paths avoids relying on package-style discovery in tests/.
+          mapfile -t test_files < <(find tests -name 'test_*.py' -print | LC_ALL=C sort)
+          if [ "${#test_files[@]}" -eq 0 ]; then
+            echo "No test files found under tests/" >&2
+            exit 1
+          fi
+          export MICROPYPATH="${GITHUB_WORKSPACE}/${MICROPYTHON_PACKAGES}"
+          "${MICROPYTHON_BIN}" -m unittest "${test_files[@]}"
