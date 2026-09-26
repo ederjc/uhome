@@ -615,6 +615,48 @@ class Select(Entity):
             self._action(msg)
 
 
+class Text(Entity):
+    """
+    MQTT Text entity.
+
+    Example:
+        label = uhome.Text(device, 'Display Text', mode='text')
+        label.set_action(lambda value: update_display(value))
+        label.publish('Ready')
+
+    More information about MQTT Text: https://www.home-assistant.io/integrations/text.mqtt/
+    """
+
+    entity_type = 'text'
+    _action = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['stat_t'] = self.topic
+        conf['cmd_t'] = self.topic_for('set')
+        return conf
+
+    def publish(self, payload, force=False):
+        """
+        @brief Publishes the text value to the MQTT state topic if it changed.
+        """
+        return self._publish_state(payload, self.conf['stat_t'], force=force)
+
+    def get_topic(self):
+        return self.conf['cmd_t']
+
+    def set_action(self, action):
+        """
+        @brief Set the action to be performed when Home Assistant sends new text.
+        """
+        self._action = action
+        return self._subscribe(self.conf['cmd_t'], self._handle_action)
+
+    def _handle_action(self, msg):
+        if self._action:
+            self._action(msg)
+
+
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/

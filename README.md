@@ -137,6 +137,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Button
 - Number
 - Select
+- Text
 
 
 ## MQTT Select entity
@@ -162,6 +163,16 @@ def set_target_level(payload):
 
 target_level.set_action(set_target_level)
 target_level.publish(50)
+```
+
+## MQTT Text entity
+
+Use `Text` when Home Assistant should send an editable string to the device and the device should publish the current string back.
+
+```
+message = uhome.Text(device, 'Display Message', mode='text', max=40)
+message.set_action(lambda value: update_display(value))
+message.publish('Ready')
 ```
 
 ## Testing
