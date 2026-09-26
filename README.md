@@ -141,6 +141,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Scene
 - Siren
 - Switch
+- Light
 
 
 ## MQTT Select entity
@@ -206,6 +207,18 @@ messages use separate topics and default to Home Assistant's `ON` / `OFF` payloa
 relay = uhome.Switch(device, 'Relay')
 relay.set_action(lambda msg: relay.publish(msg == 'ON'))
 relay.publish(False)
+```
+
+### Light
+
+Use `Light` for MQTT-controlled lamps. It uses Home Assistant's JSON schema with
+on/off and brightness support by default, and optional color temperature and RGB
+features when requested.
+
+```
+lamp = uhome.Light(device, 'Desk Lamp', color_temp=True, rgb=True)
+lamp.set_action(lambda cmd: lamp.publish(cmd.get('state', 'OFF'), brightness=cmd.get('brightness')))
+lamp.publish('ON', brightness=128, color_temp=300)
 ```
 
 ## Testing
