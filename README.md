@@ -100,6 +100,18 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Binary Sensor
 - Button
 - Number
+- Select
+
+
+## MQTT Select entity
+
+Use `Select` when Home Assistant should choose one option from a fixed list and the device should publish the current option back.
+
+```
+mode = uhome.Select(device, 'Mode', ['off', 'eco', 'boost'])
+mode.set_action(lambda value: apply_mode(value))
+mode.publish('eco')
+```
 
 ## Testing
 
