@@ -1,0 +1,43 @@
+name: mpy-cross
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    name: Compile MicroPython sources
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install mpy-cross
+        run: python -m pip install --upgrade pip mpy-cross
+
+      - name: Compile device-side Python files
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            "uhome/uhome.py"
+            "example/example.py"
+            "example/mqtt_secrets.py"
+            "example/wifi_secrets.py"
+          )
+          for file in "${files[@]}"; do
+            echo "Compiling ${file}"
+            mpy-cross "${file}"
+          done
