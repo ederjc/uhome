@@ -657,6 +657,40 @@ class Text(Entity):
             self._action(msg)
 
 
+class Scene(Entity):
+    """
+    MQTT Scene entity.
+
+    Example:
+        night = uhome.Scene(device, 'Night Mode')
+        night.set_action(lambda payload: apply_night_mode())
+
+    More information about MQTT Scene: https://www.home-assistant.io/integrations/scene.mqtt/
+    """
+
+    entity_type = 'scene'
+    _action = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['cmd_t'] = self.topic_for('set')
+        return conf
+
+    def get_topic(self):
+        return self.conf['cmd_t']
+
+    def set_action(self, action):
+        """
+        @brief Set the action to be performed when Home Assistant activates the scene.
+        """
+        self._action = action
+        return self._subscribe(self.conf['cmd_t'], self._handle_action)
+
+    def _handle_action(self, msg):
+        if self._action:
+            self._action(msg)
+
+
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/
