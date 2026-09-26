@@ -4,6 +4,9 @@
 [![Pull requests](https://img.shields.io/github/issues-pr-raw/ederjc/uhome?style=plastic)](https://github.com/ederjc/uhome/pulls)
 
 # uhome
+<!-- CI badges -->
+[![CPython tests](https://github.com/ederjc/uhome/actions/workflows/test-cpython.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/test-cpython.yml)
+
 A MicroPython module for simplified Home Assistant MQTT Auto Discovery.
 
 > [!NOTE]  
