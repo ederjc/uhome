@@ -1276,3 +1276,40 @@ class WaterHeater(Entity):
     def _handle_temperature(self, msg):
         if self._temperature_action:
             self._temperature_action(msg)
+class AlarmControlPanel(Entity):
+    """
+    MQTT alarm control panel entity.
+
+    Example:
+        alarm = uhome.AlarmControlPanel(device, 'Alarm')
+        alarm.set_action(lambda payload: handle_alarm_command(payload))
+        alarm.publish('armed_away')
+
+    More information: https://www.home-assistant.io/integrations/alarm_control_panel.mqtt/
+    """
+
+    entity_type = 'alarm_control_panel'
+    _action = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['stat_t'] = self.topic_for('state')
+        conf['cmd_t'] = self.topic_for('set')
+        return conf
+
+    def publish(self, state, force=False):
+        """Publish the alarm state."""
+        return self._publish_state(state, self.conf['stat_t'], force=force)
+
+    def get_topic(self):
+        return self.conf['cmd_t']
+
+    def set_action(self, action):
+        """Set the callback for alarm command payloads."""
+        self._action = action
+        return self._subscribe(self.conf['cmd_t'], self._handle_action)
+
+    def _handle_action(self, msg):
+        if self._action:
+            self._action(msg)
+

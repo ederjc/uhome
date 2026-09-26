@@ -145,6 +145,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Lock
 - Fan
 - Water Heater
+- Alarm Control Panel
 
 
 ## MQTT Select entity
@@ -260,6 +261,16 @@ heater.set_temperature_action(lambda value: apply_target_temperature(float(value
 heater.publish_mode('eco')
 heater.publish_target_temperature(55)
 heater.publish_current_temperature(48)
+```
+
+### Alarm Control Panel
+
+`AlarmControlPanel` exposes a Home Assistant MQTT alarm control panel with one state topic and one command topic.
+
+```python
+alarm = uhome.AlarmControlPanel(device, 'Alarm', code_arm_required=False)
+alarm.set_action(lambda payload: handle_alarm_command(payload))
+alarm.publish('armed_away')
 ```
 
 ## Testing
