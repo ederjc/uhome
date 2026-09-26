@@ -154,6 +154,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Humidifier
 - Update
 - Device Tracker
+- Image
 
 
 ## MQTT Select entity
@@ -373,6 +374,16 @@ Use `DeviceTracker` to publish `home` or `not_home` presence. Optional JSON attr
 phone = uhome.DeviceTracker(device, 'Phone')
 phone.publish('home', latitude=48.137, longitude=11.575, gps_accuracy=15)
 phone.publish('not_home')
+```
+
+### Image
+
+Use `Image` to expose an MQTT image entity. It can publish an image URL, raw image bytes, or both depending on which topics are enabled.
+
+```python
+snapshot = uhome.Image(device, 'Snapshot')
+snapshot.publish_url('https://example.local/snapshot.jpg')
+snapshot.publish_image(jpeg_bytes)
 ```
 
 ## Testing
