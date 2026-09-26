@@ -5,12 +5,16 @@ import time
 try:
     ticks_ms = time.ticks_ms
     ticks_diff = time.ticks_diff
+    ticks_add = time.ticks_add
 except AttributeError:
     def ticks_ms():
         return int(time.time() * 1000)
 
     def ticks_diff(a, b):
         return a - b
+
+    def ticks_add(a, b):
+        return a + b
 
 try:
     import traceback
@@ -381,7 +385,7 @@ class Device:
     def _schedule_reconnect(self):
         self._connected = False
         self._awaiting_echo = False
-        self._next_reconnect = ticks_ms() + self._reconnect_delay
+        self._next_reconnect = ticks_add(ticks_ms(), self._reconnect_delay)
         self._reconnect_delay = min(self._reconnect_delay * 2, self.reconnect_max_ms)
 
     def _mark_disconnected(self):
@@ -406,7 +410,7 @@ class Device:
     def _send_liveness_probe(self):
         if self.publish(self.will_topic, 'online', retain=True):
             self._awaiting_echo = True
-            self._echo_deadline = ticks_ms() + self._echo_timeout_ms
+            self._echo_deadline = ticks_add(ticks_ms(), self._echo_timeout_ms)
         else:
             self._mark_disconnected()
 
