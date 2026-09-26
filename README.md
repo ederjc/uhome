@@ -151,6 +151,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Cover
 - Valve
 - Climate
+- Humidifier
 
 
 ## MQTT Select entity
@@ -335,6 +336,21 @@ climate.set_preset_mode_action(preset_cb)
 climate.publish_mode('heat')
 climate.publish_target_temperature(21)
 climate.publish_current_temperature(20.5)
+```
+
+## Humidifier entity
+
+Use `Humidifier` for MQTT humidifiers. It handles on/off commands, target humidity, current humidity, and optional modes when `modes` are supplied.
+
+```
+humidifier = uhome.Humidifier(device, 'Nursery Humidifier', modes=['normal', 'eco'])
+humidifier.set_action(on_cb, off_cb)
+humidifier.set_target_humidity_action(target_cb)
+humidifier.set_mode_action(mode_cb)
+humidifier.publish('ON')
+humidifier.publish_target_humidity(45)
+humidifier.publish_current_humidity(42)
+humidifier.publish_mode('eco')
 ```
 
 ## Testing
