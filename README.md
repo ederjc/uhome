@@ -142,6 +142,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Siren
 - Switch
 - Light
+- Lock
 
 
 ## MQTT Select entity
@@ -219,6 +220,17 @@ features when requested.
 lamp = uhome.Light(device, 'Desk Lamp', color_temp=True, rgb=True)
 lamp.set_action(lambda cmd: lamp.publish(cmd.get('state', 'OFF'), brightness=cmd.get('brightness')))
 lamp.publish('ON', brightness=128, color_temp=300)
+```
+
+### Lock
+
+Use `Lock` for MQTT-controlled locks. State and command messages use separate
+topics with default `LOCK` / `UNLOCK` commands and `LOCKED` / `UNLOCKED` states.
+
+```
+door = uhome.Lock(device, 'Front Door')
+door.set_action(lambda msg: door.publish(msg == 'LOCK'))
+door.publish(False)
 ```
 
 ## Testing
