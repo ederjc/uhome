@@ -159,6 +159,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Event
 - Device Trigger
 - Tag Scanner
+- Notify
 
 
 
@@ -425,6 +426,15 @@ Use `TagScanner` for MQTT-based RFID/NFC readers that should raise Home Assistan
 ```
 scanner = uhome.TagScanner(device, 'RFID Reader')
 scanner.scan('E9F35959')
+```
+
+### Notify
+
+Use `Notify` when Home Assistant should send notification messages to the device over MQTT. The device subscribes to the generated command topic, and uhome restores that subscription after reconnects.
+
+```
+display = uhome.Notify(device, 'Display')
+display.set_action(lambda msg: print(msg))
 ```
 
 ## Testing
