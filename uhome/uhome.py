@@ -942,6 +942,74 @@ class Light(Entity):
             self._action(command)
 
 
+class Lock(Entity):
+    """
+    MQTT lock entity.
+
+    Example:
+        door = uhome.Lock(device, 'Front Door')
+        door.set_action(lambda msg: door.publish(msg == 'LOCK'))
+        door.publish(False)
+
+    More information about MQTT Lock: https://www.home-assistant.io/integrations/lock.mqtt/
+    """
+
+    entity_type = 'lock'
+    _action = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['stat_t'] = self.topic_for('state')
+        conf['cmd_t'] = self.topic_for('set')
+        if 'pl_lock' not in conf:
+            conf['pl_lock'] = 'LOCK'
+        if 'pl_unlk' not in conf:
+            conf['pl_unlk'] = 'UNLOCK'
+        if 'stat_locked' not in conf:
+            conf['stat_locked'] = 'LOCKED'
+        if 'stat_unlocked' not in conf:
+            conf['stat_unlocked'] = 'UNLOCKED'
+        return conf
+
+    def publish(self, locked, force=False):
+        """
+        @brief Publish the lock state.
+
+        @param locked: True/'LOCKED' for locked, False/'UNLOCKED' for unlocked, or a custom payload.
+        @param force: Publish even if the payload did not change. Defaults to False.
+        """
+        if locked is True:
+            payload = self.conf.get('stat_locked', 'LOCKED')
+        elif locked is False:
+            payload = self.conf.get('stat_unlocked', 'UNLOCKED')
+        else:
+            payload = locked
+        return self._publish_state(payload, self.conf['stat_t'], force=force)
+
+    def locked(self, force=False):
+        return self.publish(True, force=force)
+
+    def unlocked(self, force=False):
+        return self.publish(False, force=force)
+
+    def get_topic(self):
+        return self.conf['cmd_t']
+
+    def set_action(self, action):
+        """
+        @brief Set the action to perform when Home Assistant commands the lock.
+
+        @param action: Callable receiving the command payload string.
+        """
+        self._action = action
+        return self._subscribe(self.conf['cmd_t'], self._handle_action)
+
+    def _handle_action(self, msg):
+        if self._action:
+            self._action(msg)
+
+
+
 class Number(Entity):
     """
     More information about MQTT Number: https://www.home-assistant.io/integrations/number.mqtt/
