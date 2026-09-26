@@ -1,7 +1,7 @@
 import io
 import sys
-from contextlib import redirect_stderr
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -235,8 +235,10 @@ class UhomeReconnectTests(unittest.TestCase):
     def test_user_callback_exception_does_not_propagate(self):
         device = uhome.Device("Callback Device")
         button = uhome.Button(device, "Identify")
+
         def boom(msg):
             raise ValueError("bad callback")
+
         button.set_action(boom)
         mqtt = FakeMQTTClient()
         self.assertTrue(device.connect(mqtt))
@@ -263,4 +265,3 @@ class UhomeReconnectTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -7,6 +7,7 @@ try:
     ticks_diff = time.ticks_diff
     ticks_add = time.ticks_add
 except AttributeError:
+
     def ticks_ms():
         return int(time.time() * 1000)
 
@@ -15,6 +16,7 @@ except AttributeError:
 
     def ticks_add(a, b):
         return a + b
+
 
 try:
     import traceback
@@ -38,10 +40,16 @@ def _to_str(value):
 
 
 class Device:
-
-    def __init__(self, device_name, discovery_prefix='homeassistant', retain_discovery=False,
-                 connect_timeout=10, reconnect_min_ms=1000, reconnect_max_ms=60000,
-                 **kwargs):
+    def __init__(
+        self,
+        device_name,
+        discovery_prefix='homeassistant',
+        retain_discovery=False,
+        connect_timeout=10,
+        reconnect_min_ms=1000,
+        reconnect_max_ms=60000,
+        **kwargs,
+    ):
         """
         Initializes the device with the given name and optional keyword arguments passed
         directly to the Home Assistant config.
@@ -70,7 +78,7 @@ class Device:
         and converting to lowercase.
         """
         self.name = device_name
-        self.id = self.name.replace(' ', '_').lower() # TODO: ö, ä, ü, ... not handled!
+        self.id = self.name.replace(' ', '_').lower()  # TODO: ö, ä, ü, ... not handled!
         self.discovery_prefix = discovery_prefix
         self.retain_discovery = retain_discovery
         self.connect_timeout = connect_timeout
@@ -430,7 +438,6 @@ class Device:
 
 
 class Entity(Device):
-
     def __init__(self, device, entity_name, **kwargs):
         """
         Create a new entity for the device.
@@ -483,8 +490,8 @@ class Entity(Device):
             conf["cmd_t"] = self.topic  # TODO: split Number command and state topics in a follow-up PR.
         elif self.entity_type == 'button':
             conf["cmd_t"] = self.topic
-        for arg in kwargs:
-            conf[arg] = kwargs[arg]
+        for arg, value in kwargs.items():
+            conf[arg] = value
         return conf
 
     def discover(self):

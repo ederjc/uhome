@@ -1,7 +1,10 @@
-import machine, network
-import wifi_secrets, mqtt_secrets
-import ubinascii, json
 import time
+
+import machine
+import mqtt_secrets
+import network
+import ubinascii
+import wifi_secrets
 
 PIN_BOARD_LED = 'P13_7'
 
@@ -11,6 +14,7 @@ sta.connect(wifi_secrets.ssid, wifi_secrets.psk)
 
 ### DOWNLOAD DEPENDENCIES ###
 import mip
+
 try:
     import umqtt.robust
 except:
@@ -37,6 +41,8 @@ device.connect(mqttc)
 
 ### HELPER FUNCTIONS ###
 board_led = machine.Pin(PIN_BOARD_LED, machine.Pin.OUT, value=1)
+
+
 def identify_board(msg):
     """
     This function is called when the identify_button is pressed.
@@ -46,15 +52,16 @@ def identify_board(msg):
     time.sleep(1)
     board_led.value(1)
 
+
 ### CREATE ENTITIES ###
 """
 These are some default entities that are useful for diagnostics.
 """
-identify_button = uhome.Button(device, 'Identify', entity_category="config") # Create a button to identify the board.
-identify_button.set_action(identify_board) # Set the action to the identify_board function.
+identify_button = uhome.Button(device, 'Identify', entity_category="config")  # Create a button to identify the board.
+identify_button.set_action(identify_board)  # Set the action to the identify_board function.
 
-fw_update_button = uhome.Button(device, 'Update Firmware', entity_category="config") # Create a button to trigger a firmware update.
-fw_update_button.set_action(lambda x: machine.soft_reset()) # Set the action to the update firmware function.
+fw_update_button = uhome.Button(device, 'Update Firmware', entity_category="config")  # Create a button to trigger a firmware update.
+fw_update_button.set_action(lambda x: machine.soft_reset())  # Set the action to the update firmware function.
 
 signal_strength = uhome.Sensor(device, 'Signal Strength', device_class="signal_strength", unit_of_measurement='dBm', entity_category="diagnostic")
 wifi_ch = uhome.Sensor(device, 'WiFi Channel', device_class="enum", entity_category="diagnostic")
@@ -82,9 +89,10 @@ Here we publish the values of the diagnostic entities.
 Some of these values are published only once, while others
 should be published regularly to keep Home Assistant up to date.
 """
-cpu_freq.publish(f'{machine.freq()/1e6:.0f}')
+cpu_freq.publish(f'{machine.freq() / 1e6:.0f}')
 reset_cause.publish(f'{machine.reset_cause()}')
 wifi_mac.publish(ubinascii.hexlify(sta.config("mac"), ":").decode().upper())
+
 
 def publishDiagnostics(tmr=None):
     """
@@ -103,6 +111,7 @@ certain event (like a pin level change) occurs.
 diagnostics_tmr = machine.Timer(0, mode=machine.Timer.PERIODIC, period=30000, callback=publishDiagnostics)
 
 while True:
-    if not sta.isconnected(): sta = sta.connect(wifi_secrets.ssid, wifi_secrets.psk) # Reconnect to WiFi if connection is lost.
+    if not sta.isconnected():
+        sta = sta.connect(wifi_secrets.ssid, wifi_secrets.psk)  # Reconnect to WiFi if connection is lost.
 
-    device.loop() # Handle all device specific tasks (mandatory).
+    device.loop()  # Handle all device specific tasks (mandatory).

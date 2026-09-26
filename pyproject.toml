@@ -1,0 +1,21 @@
+[tool.ruff]
+# Use a modern CPython parser; the example script uses PEP 701 f-string quoting.
+target-version = "py313"
+# Keep existing MicroPython-oriented examples readable without wrapping every long call.
+line-length = 150
+
+[tool.ruff.lint]
+ignore = [
+    # Example bootstrap code intentionally catches import/install failures generically on MicroPython.
+    "E722",
+    # Runtime MQTT/callback guards intentionally catch broad exceptions to keep the device loop alive.
+    "BLE001",
+    # Best-effort socket cleanup intentionally suppresses teardown errors during disconnect handling.
+    "S110",
+    # Existing topic/payload formatting uses %-style for MicroPython compatibility and low churn.
+    "UP031",
+]
+
+[tool.ruff.format]
+# Preserve the project's existing mix of single and double quotes to avoid wholesale churn.
+quote-style = "preserve"
