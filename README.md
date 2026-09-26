@@ -157,6 +157,8 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Image
 - Camera
 - Event
+- Device Trigger
+
 
 
 ## MQTT Select entity
@@ -404,6 +406,15 @@ Use `Event` for stateless happenings such as a doorbell press. Events publish JS
 ```
 doorbell = uhome.Event(device, 'Doorbell', ['press'])
 doorbell.fire('press', {'button': 'front'})
+```
+
+### Device Trigger
+
+Use `DeviceTrigger` for remote-control or button events that should appear as Home Assistant device automation triggers. Its MQTT discovery schema is not an entity schema, so it publishes `automation_type`, `topic`, `type`, `subtype`, and `device` without entity name, availability, or unique ID fields.
+
+```
+left = uhome.DeviceTrigger(device, 'Left Click', 'action', 'arrow_left_click', payload='arrow_left_click')
+left.trigger()
 ```
 
 ## Testing

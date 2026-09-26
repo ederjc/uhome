@@ -1078,6 +1078,68 @@ class Event(Entity):
         return True
 
 
+class DeviceTrigger(Entity):
+    """
+    MQTT device automation trigger for buttons and remotes.
+
+    Example::
+
+        left = uhome.DeviceTrigger(device, "Left Click", "action", "arrow_left_click", payload="arrow_left_click")
+        left.trigger()
+    """
+
+    entity_type = 'device_automation'
+
+    def __init__(self, device, trigger_name, trigger_type, subtype, payload=None, topic=None, **kwargs):
+        self.trigger_type = trigger_type
+        self.subtype = subtype
+        self.payload = payload
+        self.trigger_topic = topic
+        super().__init__(device, trigger_name, **kwargs)
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        # Device triggers are not entities: their discovery schema uses device automation
+        # keys and intentionally has no name, unique_id, availability, or state topic.
+        device = conf.pop("dev")
+        conf.pop("name", None)
+        conf.pop("uniq_id", None)
+        conf.pop("avty_t", None)
+        conf["automation_type"] = "trigger"
+        conf["topic"] = self.trigger_topic or self.topic_for("trigger")
+        conf["type"] = self.trigger_type
+        conf["subtype"] = self.subtype
+        conf["device"] = device
+        if self.payload is not None:
+            conf["payload"] = self.payload
+        for arg in kwargs:
+            conf[arg] = kwargs[arg]
+        return conf
+
+    def get_topic(self):
+        return self.conf['topic']
+
+    def trigger(self, payload=None):
+        """
+        Publish a device trigger event. Trigger messages are momentary and not retained.
+        """
+        if payload is None:
+            payload = self.conf.get('payload', self.subtype)
+        return self.device.publish(self.conf['topic'], payload, retain=False)
+
+    def publish(self, payload=None):
+        """
+        Alias for trigger() for consistency with publisher-style helpers.
+        """
+        return self.trigger(payload)
+
+    def republish(self):
+        """
+        Device triggers are events and must not be replayed after reconnects.
+        """
+        return True
+
+
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/
