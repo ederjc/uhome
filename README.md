@@ -146,6 +146,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Fan
 - Water Heater
 - Alarm Control Panel
+- Lawn Mower
 
 
 ## MQTT Select entity
@@ -271,6 +272,18 @@ heater.publish_current_temperature(48)
 alarm = uhome.AlarmControlPanel(device, 'Alarm', code_arm_required=False)
 alarm.set_action(lambda payload: handle_alarm_command(payload))
 alarm.publish('armed_away')
+```
+
+### Lawn Mower
+
+`LawnMower` exposes a Home Assistant MQTT lawn mower with activity state plus start mowing, pause, and dock commands.
+
+```python
+mower = uhome.LawnMower(device, 'Garden Mower')
+mower.set_start_mowing_action(lambda payload: start_mowing())
+mower.set_pause_action(lambda payload: pause_mowing())
+mower.set_dock_action(lambda payload: return_to_dock())
+mower.publish_activity('mowing')
 ```
 
 ## Testing

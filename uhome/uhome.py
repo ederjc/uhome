@@ -1314,3 +1314,71 @@ class AlarmControlPanel(Entity):
     def _handle_action(self, msg):
         if self._action:
             self._action(msg)
+
+class LawnMower(Entity):
+    """
+    MQTT lawn mower entity.
+
+    Example:
+        mower = uhome.LawnMower(device, 'Garden Mower')
+        mower.set_start_mowing_action(lambda msg: start_mowing())
+        mower.set_pause_action(lambda msg: pause_mowing())
+        mower.set_dock_action(lambda msg: return_to_dock())
+        mower.publish_activity('mowing')
+
+    More information: https://www.home-assistant.io/integrations/lawn_mower.mqtt/
+    """
+
+    entity_type = 'lawn_mower'
+    _start_mowing_action = None
+    _pause_action = None
+    _dock_action = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['act_stat_t'] = self.topic_for('activity/state')
+        conf['strt_mw_cmd_t'] = self.topic_for('start_mowing/set')
+        conf['pause_cmd_t'] = self.topic_for('pause/set')
+        conf['dock_cmd_t'] = self.topic_for('dock/set')
+        return conf
+
+    def publish_activity(self, activity, force=False):
+        """Publish the current mower activity."""
+        return self._publish_state(activity, self.conf['act_stat_t'], force=force)
+
+    def get_start_mowing_topic(self):
+        return self.conf['strt_mw_cmd_t']
+
+    def get_pause_topic(self):
+        return self.conf['pause_cmd_t']
+
+    def get_dock_topic(self):
+        return self.conf['dock_cmd_t']
+
+    def set_start_mowing_action(self, action):
+        """Set the callback for start mowing commands."""
+        self._start_mowing_action = action
+        return self._subscribe(self.conf['strt_mw_cmd_t'], self._handle_start_mowing)
+
+    def set_pause_action(self, action):
+        """Set the callback for pause commands."""
+        self._pause_action = action
+        return self._subscribe(self.conf['pause_cmd_t'], self._handle_pause)
+
+    def set_dock_action(self, action):
+        """Set the callback for dock commands."""
+        self._dock_action = action
+        return self._subscribe(self.conf['dock_cmd_t'], self._handle_dock)
+
+    def _handle_start_mowing(self, msg):
+        if self._start_mowing_action:
+            self._start_mowing_action(msg)
+
+    def _handle_pause(self, msg):
+        if self._pause_action:
+            self._pause_action(msg)
+
+    def _handle_dock(self, msg):
+        if self._dock_action:
+            self._dock_action(msg)
+
