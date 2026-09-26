@@ -147,6 +147,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Water Heater
 - Alarm Control Panel
 - Lawn Mower
+- Vacuum
 
 
 ## MQTT Select entity
@@ -284,6 +285,18 @@ mower.set_start_mowing_action(lambda payload: start_mowing())
 mower.set_pause_action(lambda payload: pause_mowing())
 mower.set_dock_action(lambda payload: return_to_dock())
 mower.publish_activity('mowing')
+```
+
+### Vacuum
+
+`Vacuum` exposes a Home Assistant MQTT vacuum using the current `state` schema. It publishes a JSON state payload and supports standard command, fan speed, custom command, and clean-segments command topics.
+
+```python
+vacuum = uhome.Vacuum(device, 'Robot Vacuum', fanspd_lst=['quiet', 'max'])
+vacuum.set_command_action(lambda command: handle_vacuum_command(command))
+vacuum.set_fan_speed_action(lambda speed: set_fan_speed(speed))
+vacuum.publish_state('cleaning', battery_level=82, fan_speed='quiet')
+```
 ```
 
 ## Testing
