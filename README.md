@@ -158,6 +158,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Camera
 - Event
 - Device Trigger
+- Tag Scanner
 
 
 
@@ -415,6 +416,15 @@ Use `DeviceTrigger` for remote-control or button events that should appear as Ho
 ```
 left = uhome.DeviceTrigger(device, 'Left Click', 'action', 'arrow_left_click', payload='arrow_left_click')
 left.trigger()
+```
+
+### Tag Scanner
+
+Use `TagScanner` for MQTT-based RFID/NFC readers that should raise Home Assistant tag scanned events. The tag scanner discovery schema uses `topic`, optional `value_template`, and device information; it intentionally has no entity name, availability, or unique ID.
+
+```
+scanner = uhome.TagScanner(device, 'RFID Reader')
+scanner.scan('E9F35959')
 ```
 
 ## Testing

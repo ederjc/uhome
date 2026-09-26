@@ -1140,6 +1140,61 @@ class DeviceTrigger(Entity):
         return True
 
 
+class TagScanner(Entity):
+    """
+    MQTT tag scanner that emits Home Assistant tag scanned events.
+
+    Example::
+
+        scanner = uhome.TagScanner(device, "RFID Reader")
+        scanner.scan("E9F35959")
+    """
+
+    entity_type = 'tag'
+
+    def __init__(self, device, scanner_name, topic=None, value_template=None, **kwargs):
+        self.scan_topic = topic
+        self.value_template = value_template
+        super().__init__(device, scanner_name, **kwargs)
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        # Tag scanners are discovery-only scanners, not HA entities; their schema
+        # has no entity name, unique_id, availability, or state cache.
+        device = conf.pop("dev")
+        conf.pop("name", None)
+        conf.pop("uniq_id", None)
+        conf.pop("avty_t", None)
+        conf["topic"] = self.scan_topic or self.topic_for("scan")
+        conf["device"] = device
+        if self.value_template is not None:
+            conf["value_template"] = self.value_template
+        for arg in kwargs:
+            conf[arg] = kwargs[arg]
+        return conf
+
+    def get_topic(self):
+        return self.conf['topic']
+
+    def scan(self, tag_id):
+        """
+        Publish a tag scan. Scans are events and are not retained or replayed.
+        """
+        return self.device.publish(self.conf['topic'], tag_id, retain=False)
+
+    def publish(self, tag_id):
+        """
+        Alias for scan() for consistency with publisher-style helpers.
+        """
+        return self.scan(tag_id)
+
+    def republish(self):
+        """
+        Tag scans are momentary events and must not be replayed after reconnects.
+        """
+        return True
+
+
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/
