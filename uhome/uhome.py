@@ -956,6 +956,83 @@ class Climate(Entity):
             self._preset_mode_action(msg)
 
 
+class Humidifier(Entity):
+    """
+    More information about MQTT Humidifiers: https://www.home-assistant.io/integrations/humidifier.mqtt/
+
+    Example:
+        humidifier = Humidifier(device, "Nursery Humidifier", modes=["normal", "eco"])
+        humidifier.set_action(on_cb, off_cb)
+        humidifier.set_target_humidity_action(target_cb)
+        humidifier.publish("ON")
+        humidifier.publish_target_humidity(45)
+        humidifier.publish_current_humidity(42)
+    """
+
+    entity_type = 'humidifier'
+
+    def __init__(self, device, entity_name, modes=None, **kwargs):
+        self._on_action = None
+        self._off_action = None
+        self._target_humidity_action = None
+        self._mode_action = None
+        super().__init__(device, entity_name, modes=modes, **kwargs)
+
+    def make_conf(self, modes=None, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf.setdefault("stat_t", self.topic)
+        conf.setdefault("cmd_t", self.topic_for('command'))
+        conf.setdefault("pl_on", "ON")
+        conf.setdefault("pl_off", "OFF")
+        conf.setdefault("hum_stat_t", self.topic_for('target_humidity/state'))
+        conf.setdefault("hum_cmd_t", self.topic_for('target_humidity/command'))
+        conf.setdefault("curr_hum_t", self.topic_for('current_humidity'))
+        if modes is not None:
+            conf.setdefault("modes", modes)
+            conf.setdefault("mode_stat_t", self.topic_for('mode/state'))
+            conf.setdefault("mode_cmd_t", self.topic_for('mode/command'))
+        return conf
+
+    def publish(self, payload, force=False):
+        return self._publish_state(payload, self.conf['stat_t'], force=force)
+
+    def publish_target_humidity(self, payload, force=False):
+        return self._publish_state(payload, self.conf['hum_stat_t'], force=force)
+
+    def publish_current_humidity(self, payload, force=False):
+        return self._publish_state(payload, self.conf['curr_hum_t'], force=force)
+
+    def publish_mode(self, payload, force=False):
+        return self._publish_state(payload, self.conf['mode_stat_t'], force=force)
+
+    def set_action(self, on_action=None, off_action=None):
+        self._on_action = on_action
+        self._off_action = off_action
+        return self._subscribe(self.conf['cmd_t'], self._handle_command)
+
+    def set_target_humidity_action(self, action):
+        self._target_humidity_action = action
+        return self._subscribe(self.conf['hum_cmd_t'], self._handle_target_humidity)
+
+    def set_mode_action(self, action):
+        self._mode_action = action
+        return self._subscribe(self.conf['mode_cmd_t'], self._handle_mode)
+
+    def _handle_command(self, msg):
+        if msg == self.conf.get('pl_on') and self._on_action:
+            self._on_action(msg)
+        elif msg == self.conf.get('pl_off') and self._off_action:
+            self._off_action(msg)
+
+    def _handle_target_humidity(self, msg):
+        if self._target_humidity_action:
+            self._target_humidity_action(msg)
+
+    def _handle_mode(self, msg):
+        if self._mode_action:
+            self._mode_action(msg)
+
+
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/
