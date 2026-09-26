@@ -1211,3 +1211,69 @@ class Number(Entity):
         except (TypeError, ValueError):
             return False
         return True
+
+
+class WaterHeater(Entity):
+    """
+    MQTT water heater entity.
+
+    Example:
+        heater = uhome.WaterHeater(device, 'Boiler', modes=['off', 'eco', 'performance'])
+        heater.set_mode_action(lambda mode: set_mode(mode))
+        heater.set_temperature_action(lambda value: set_target(float(value)))
+        heater.publish_mode('eco')
+        heater.publish_target_temperature(55)
+        heater.publish_current_temperature(48)
+
+    More information: https://www.home-assistant.io/integrations/water_heater.mqtt/
+    """
+
+    entity_type = 'water_heater'
+    _mode_action = None
+    _temperature_action = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['mode_stat_t'] = self.topic_for('mode/state')
+        conf['mode_cmd_t'] = self.topic_for('mode/set')
+        conf['temp_stat_t'] = self.topic_for('temperature/state')
+        conf['temp_cmd_t'] = self.topic_for('temperature/set')
+        conf['curr_temp_t'] = self.topic_for('current_temperature/state')
+        return conf
+
+    def publish_mode(self, mode, force=False):
+        """Publish the current operation mode."""
+        return self._publish_state(mode, self.conf['mode_stat_t'], force=force)
+
+    def publish_target_temperature(self, temperature, force=False):
+        """Publish the target temperature."""
+        return self._publish_state(temperature, self.conf['temp_stat_t'], force=force)
+
+    def publish_current_temperature(self, temperature, force=False):
+        """Publish the measured current temperature."""
+        return self._publish_state(temperature, self.conf['curr_temp_t'], force=force)
+
+    def get_mode_topic(self):
+        return self.conf['mode_cmd_t']
+
+    def get_temperature_topic(self):
+        return self.conf['temp_cmd_t']
+
+    def set_mode_action(self, action):
+        """Set the callback for water heater mode commands."""
+        self._mode_action = action
+        return self._subscribe(self.conf['mode_cmd_t'], self._handle_mode)
+
+    def set_temperature_action(self, action):
+        """Set the callback for target temperature commands."""
+        self._temperature_action = action
+        return self._subscribe(self.conf['temp_cmd_t'], self._handle_temperature)
+
+    def _handle_mode(self, msg):
+        if self._mode_action:
+            self._mode_action(msg)
+
+    def _handle_temperature(self, msg):
+        if self._temperature_action:
+            self._temperature_action(msg)
+

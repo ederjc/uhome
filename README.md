@@ -144,6 +144,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Light
 - Lock
 - Fan
+- Water Heater
 
 
 ## MQTT Select entity
@@ -246,6 +247,19 @@ fan = uhome.Fan(device, 'Ceiling Fan', percentage=True,
 fan.set_action(lambda feature, msg: print(feature, msg))
 fan.publish(True)
 fan.publish_percentage(50)
+```
+
+### Water Heater
+
+`WaterHeater` exposes a Home Assistant MQTT water heater with separate topics for mode, target temperature, and current temperature.
+
+```python
+heater = uhome.WaterHeater(device, 'Boiler', modes=['off', 'eco', 'performance'], min_temp=40, max_temp=65)
+heater.set_mode_action(lambda mode: apply_mode(mode))
+heater.set_temperature_action(lambda value: apply_target_temperature(float(value)))
+heater.publish_mode('eco')
+heater.publish_target_temperature(55)
+heater.publish_current_temperature(48)
 ```
 
 ## Testing
