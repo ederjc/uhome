@@ -149,6 +149,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Lawn Mower
 - Vacuum
 - Cover
+- Valve
 
 
 ## MQTT Select entity
@@ -308,6 +309,16 @@ cover = uhome.Cover(device, 'Garage Door', position=True)
 cover.set_action(open_cb, close_cb, stop_cb, set_position_cb)
 cover.publish('closed')
 cover.publish_position(0)
+```
+
+## Valve entity
+
+Use `Valve` for MQTT valves that accept open and close commands and publish their current state.
+
+```
+valve = uhome.Valve(device, 'Irrigation Valve')
+valve.set_action(open_cb, close_cb)
+valve.publish('closed')
 ```
 
 ## Testing
