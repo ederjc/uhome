@@ -8,6 +8,7 @@
 [![CPython tests](https://github.com/ederjc/uhome/actions/workflows/test-cpython.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/test-cpython.yml)
 [![mpy-cross](https://github.com/ederjc/uhome/actions/workflows/mpy-cross.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/mpy-cross.yml)
 [![lint](https://github.com/ederjc/uhome/actions/workflows/lint.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/lint.yml)
+![coverage](https://raw.githubusercontent.com/ederjc/uhome/master/coverage.svg)
 
 A MicroPython module for simplified Home Assistant MQTT Auto Discovery.
 
