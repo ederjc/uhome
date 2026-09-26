@@ -858,6 +858,91 @@ class Switch(Entity):
             self._action(msg)
 
 
+class Light(Entity):
+    """
+    MQTT light entity using Home Assistant's JSON schema.
+
+    Example:
+        lamp = uhome.Light(device, 'Lamp', color_temp=True, rgb=True)
+        lamp.set_action(lambda cmd: lamp.publish(cmd.get('state', 'OFF'),
+                                                 brightness=cmd.get('brightness')))
+        lamp.publish('ON', brightness=128)
+
+    More information about MQTT Light: https://www.home-assistant.io/integrations/light.mqtt/
+    """
+
+    entity_type = 'light'
+    _action = None
+
+    def __init__(self, device, entity_name, color_temp=False, rgb=False, **kwargs):
+        self._has_color_temp = color_temp
+        self._has_rgb = rgb
+        super().__init__(device, entity_name, **kwargs)
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['schema'] = 'json'
+        conf['stat_t'] = self.topic_for('state')
+        conf['cmd_t'] = self.topic_for('set')
+        if 'brightness' not in conf:
+            conf['brightness'] = True
+        if self._has_color_temp and 'color_temp' not in conf:
+            conf['color_temp'] = True
+        if self._has_rgb and 'rgb' not in conf:
+            conf['rgb'] = True
+        return conf
+
+    def publish(self, state, brightness=None, color_temp=None, rgb=None, force=False):
+        """
+        @brief Publish the light JSON state.
+
+        @param state: True/'ON' for on or False/'OFF' for off.
+        @param brightness: Optional 0-255 brightness.
+        @param color_temp: Optional color temperature value.
+        @param rgb: Optional (red, green, blue) tuple/list.
+        @param force: Publish even if the payload did not change. Defaults to False.
+        """
+        if state is True:
+            state = 'ON'
+        elif state is False:
+            state = 'OFF'
+        payload = {'state': state}
+        if brightness is not None:
+            payload['brightness'] = brightness
+        if color_temp is not None:
+            payload['color_temp'] = color_temp
+        if rgb is not None:
+            payload['color'] = {'r': rgb[0], 'g': rgb[1], 'b': rgb[2]}
+        return self._publish_state(json.dumps(payload), self.conf['stat_t'], force=force)
+
+    def on(self, brightness=None, color_temp=None, rgb=None, force=False):
+        return self.publish('ON', brightness=brightness, color_temp=color_temp, rgb=rgb, force=force)
+
+    def off(self, force=False):
+        return self.publish('OFF', force=force)
+
+    def get_topic(self):
+        return self.conf['cmd_t']
+
+    def set_action(self, action):
+        """
+        @brief Set the action to perform when Home Assistant commands the light.
+
+        @param action: Callable receiving the decoded JSON command dictionary.
+        """
+        self._action = action
+        return self._subscribe(self.conf['cmd_t'], self._handle_action)
+
+    def _handle_action(self, msg):
+        if self._action:
+            try:
+                command = json.loads(msg)
+            except ValueError:
+                command = {'state': msg}
+            self._action(command)
+
+
+
 class Number(Entity):
     """
     More information about MQTT Number: https://www.home-assistant.io/integrations/number.mqtt/
