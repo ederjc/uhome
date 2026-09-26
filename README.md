@@ -150,6 +150,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Vacuum
 - Cover
 - Valve
+- Climate
 
 
 ## MQTT Select entity
@@ -319,6 +320,21 @@ Use `Valve` for MQTT valves that accept open and close commands and publish thei
 valve = uhome.Valve(device, 'Irrigation Valve')
 valve.set_action(open_cb, close_cb)
 valve.publish('closed')
+```
+
+## Climate entity
+
+Use `Climate` for MQTT thermostats. It publishes current mode, target temperature, and current temperature; fan and preset modes are enabled by passing `fan_modes` or `preset_modes`.
+
+```
+climate = uhome.Climate(device, 'Thermostat', modes=['off', 'heat'], fan_modes=['auto'], preset_modes=['eco'])
+climate.set_mode_action(mode_cb)
+climate.set_temperature_action(target_cb)
+climate.set_fan_mode_action(fan_cb)
+climate.set_preset_mode_action(preset_cb)
+climate.publish_mode('heat')
+climate.publish_target_temperature(21)
+climate.publish_current_temperature(20.5)
 ```
 
 ## Testing

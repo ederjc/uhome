@@ -867,6 +867,95 @@ class Valve(Entity):
             self._set_position_action(msg)
 
 
+class Climate(Entity):
+    """
+    More information about MQTT Climate: https://www.home-assistant.io/integrations/climate.mqtt/
+
+    Example:
+        climate = Climate(device, "Thermostat", modes=["off", "heat"], fan_modes=["auto"], preset_modes=["eco"])
+        climate.set_mode_action(mode_cb)
+        climate.set_temperature_action(target_cb)
+        climate.publish_mode("heat")
+        climate.publish_target_temperature(21)
+        climate.publish_current_temperature(20.5)
+    """
+
+    entity_type = 'climate'
+
+    def __init__(self, device, entity_name, modes=None, fan_modes=None, preset_modes=None, **kwargs):
+        self._mode_action = None
+        self._temperature_action = None
+        self._fan_mode_action = None
+        self._preset_mode_action = None
+        super().__init__(device, entity_name, modes=modes, fan_modes=fan_modes, preset_modes=preset_modes, **kwargs)
+
+    def make_conf(self, modes=None, fan_modes=None, preset_modes=None, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf.setdefault("mode_stat_t", self.topic_for('mode/state'))
+        conf.setdefault("mode_cmd_t", self.topic_for('mode/command'))
+        conf.setdefault("temp_stat_t", self.topic_for('target_temperature/state'))
+        conf.setdefault("temp_cmd_t", self.topic_for('target_temperature/command'))
+        conf.setdefault("curr_temp_t", self.topic_for('current_temperature'))
+        if modes is not None:
+            conf.setdefault("modes", modes)
+        if fan_modes is not None:
+            conf.setdefault("fan_modes", fan_modes)
+            conf.setdefault("fan_mode_stat_t", self.topic_for('fan_mode/state'))
+            conf.setdefault("fan_mode_cmd_t", self.topic_for('fan_mode/command'))
+        if preset_modes is not None:
+            conf.setdefault("preset_modes", preset_modes)
+            conf.setdefault("pr_mode_stat_t", self.topic_for('preset_mode/state'))
+            conf.setdefault("pr_mode_cmd_t", self.topic_for('preset_mode/command'))
+        return conf
+
+    def publish_mode(self, payload, force=False):
+        return self._publish_state(payload, self.conf['mode_stat_t'], force=force)
+
+    def publish_target_temperature(self, payload, force=False):
+        return self._publish_state(payload, self.conf['temp_stat_t'], force=force)
+
+    def publish_current_temperature(self, payload, force=False):
+        return self._publish_state(payload, self.conf['curr_temp_t'], force=force)
+
+    def publish_fan_mode(self, payload, force=False):
+        return self._publish_state(payload, self.conf['fan_mode_stat_t'], force=force)
+
+    def publish_preset_mode(self, payload, force=False):
+        return self._publish_state(payload, self.conf['pr_mode_stat_t'], force=force)
+
+    def set_mode_action(self, action):
+        self._mode_action = action
+        return self._subscribe(self.conf['mode_cmd_t'], self._handle_mode)
+
+    def set_temperature_action(self, action):
+        self._temperature_action = action
+        return self._subscribe(self.conf['temp_cmd_t'], self._handle_temperature)
+
+    def set_fan_mode_action(self, action):
+        self._fan_mode_action = action
+        return self._subscribe(self.conf['fan_mode_cmd_t'], self._handle_fan_mode)
+
+    def set_preset_mode_action(self, action):
+        self._preset_mode_action = action
+        return self._subscribe(self.conf['pr_mode_cmd_t'], self._handle_preset_mode)
+
+    def _handle_mode(self, msg):
+        if self._mode_action:
+            self._mode_action(msg)
+
+    def _handle_temperature(self, msg):
+        if self._temperature_action:
+            self._temperature_action(msg)
+
+    def _handle_fan_mode(self, msg):
+        if self._fan_mode_action:
+            self._fan_mode_action(msg)
+
+    def _handle_preset_mode(self, msg):
+        if self._preset_mode_action:
+            self._preset_mode_action(msg)
+
+
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/
