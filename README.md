@@ -6,6 +6,7 @@
 # uhome
 <!-- CI badges -->
 [![CPython tests](https://github.com/ederjc/uhome/actions/workflows/test-cpython.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/test-cpython.yml)
+[![mpy-cross](https://github.com/ederjc/uhome/actions/workflows/mpy-cross.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/mpy-cross.yml)
 
 A MicroPython module for simplified Home Assistant MQTT Auto Discovery.
 
