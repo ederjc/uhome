@@ -138,6 +138,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Number
 - Select
 - Text
+- Scene
 
 
 ## MQTT Select entity
@@ -173,6 +174,15 @@ Use `Text` when Home Assistant should send an editable string to the device and 
 message = uhome.Text(device, 'Display Message', mode='text', max=40)
 message.set_action(lambda value: update_display(value))
 message.publish('Ready')
+```
+
+## MQTT Scene entity
+
+Use `Scene` when Home Assistant should trigger a device-side scene or preset. MQTT scenes are command-only; Home Assistant sends the activation payload to the command topic.
+
+```
+night = uhome.Scene(device, 'Night Mode', payload_on='ACTIVATE')
+night.set_action(lambda payload: apply_night_mode())
 ```
 
 ## Testing
