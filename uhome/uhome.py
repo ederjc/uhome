@@ -1033,6 +1033,51 @@ class Humidifier(Entity):
             self._mode_action(msg)
 
 
+class Event(Entity):
+    """
+    MQTT event entity for stateless events.
+
+    Example::
+
+        doorbell = uhome.Event(device, "Doorbell", ["press"])
+        doorbell.fire("press", {"button": "front"})
+    """
+
+    entity_type = 'event'
+
+    def __init__(self, device, entity_name, event_types, **kwargs):
+        self.event_types = event_types
+        super().__init__(device, entity_name, **kwargs)
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf["stat_t"] = self.topic
+        conf["evt_typ"] = self.event_types
+        return conf
+
+    def fire(self, event_type, attributes=None):
+        """
+        Publish a stateless event payload. Event messages are never retained or cached.
+        """
+        payload = {"event_type": event_type}
+        if attributes:
+            for key in attributes:
+                payload[key] = attributes[key]
+        return self.device.publish(self.conf['stat_t'], json.dumps(payload), retain=False)
+
+    def publish(self, event_type, attributes=None):
+        """
+        Alias for fire() to match state-oriented entity APIs without caching events.
+        """
+        return self.fire(event_type, attributes)
+
+    def republish(self):
+        """
+        Events are momentary signals; reconnect recovery must not replay old events.
+        """
+        return True
+
+
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/

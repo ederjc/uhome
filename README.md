@@ -156,6 +156,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Device Tracker
 - Image
 - Camera
+- Event
 
 
 ## MQTT Select entity
@@ -394,6 +395,15 @@ Use `Camera` to publish raw JPEG bytes to Home Assistant's MQTT camera platform.
 ```python
 camera = uhome.Camera(device, 'Front Door')
 camera.publish(jpeg_bytes)
+```
+
+### Event
+
+Use `Event` for stateless happenings such as a doorbell press. Events publish JSON payloads to the MQTT event state topic and are never retained or replayed after reconnects.
+
+```
+doorbell = uhome.Event(device, 'Doorbell', ['press'])
+doorbell.fire('press', {'button': 'front'})
 ```
 
 ## Testing
