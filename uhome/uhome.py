@@ -1777,3 +1777,51 @@ class Vacuum(Entity):
     def _handle_clean_segments(self, msg):
         if self._clean_segments_action:
             self._clean_segments_action(msg)
+
+
+class Update(Entity):
+    """
+    MQTT update entity for reporting installed and latest versions.
+
+    Example:
+        fw = uhome.Update(device, "Firmware")
+        fw.set_install_action(lambda msg: start_update())
+        fw.publish("1.0.0", "1.1.0")
+    """
+
+    entity_type = 'update'
+    _action = None
+
+    def make_conf(self, **kwargs):
+        conf = super().make_conf(**kwargs)
+        conf['stat_t'] = self.topic
+        conf['cmd_t'] = self.topic_for('command')
+        if 'pl_inst' not in conf:
+            conf['pl_inst'] = 'INSTALL'
+        return conf
+
+    def publish(self, installed_version, latest_version, force=False, **kwargs):
+        """
+        Publish installed/latest version state as JSON.
+        """
+        payload = {
+            'installed_version': installed_version,
+            'latest_version': latest_version,
+        }
+        for key in kwargs:
+            payload[key] = kwargs[key]
+        return self._publish_state(json.dumps(payload), self.conf['stat_t'], force=force)
+
+    def get_topic(self):
+        return self.conf['cmd_t']
+
+    def set_install_action(self, action):
+        """
+        Subscribe to the install command topic and call action when Home Assistant requests install.
+        """
+        self._action = action
+        return self._subscribe(self.conf['cmd_t'], self._handle_install)
+
+    def _handle_install(self, msg):
+        if self._action and msg == self.conf.get('pl_inst', 'INSTALL'):
+            self._action(msg)

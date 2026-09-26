@@ -152,6 +152,7 @@ When Home Assistant publishes its birth message (`online` on `homeassistant/stat
 - Valve
 - Climate
 - Humidifier
+- Update
 
 
 ## MQTT Select entity
@@ -351,6 +352,16 @@ humidifier.publish('ON')
 humidifier.publish_target_humidity(45)
 humidifier.publish_current_humidity(42)
 humidifier.publish_mode('eco')
+```
+
+### Update
+
+Use `Update` to expose firmware or software update availability. The entity publishes a JSON state with the installed and latest version and can subscribe to Home Assistant's install command.
+
+```python
+firmware = uhome.Update(device, 'Firmware')
+firmware.set_install_action(lambda msg: start_firmware_update())
+firmware.publish('1.0.0', '1.1.0', title='Firmware 1.1.0')
 ```
 
 ## Testing
