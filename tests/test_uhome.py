@@ -62,6 +62,8 @@ class FakeMQTTClient:
         self.lw_qos = None
         self.published = []
         self.subscribed = []
+        self.events = []
+        self.retained = {}
         self.pings = 0
         self.disconnects = 0
         self.inbox = []
@@ -98,9 +100,14 @@ class FakeMQTTClient:
         if self.fail_publish:
             raise OSError("publish failed")
         self.published.append((topic, msg, retain, qos))
+        self.events.append(("publish", topic, msg))
 
     def subscribe(self, topic, qos=0):
         self.subscribed.append((topic, qos))
+        self.events.append(("subscribe", topic, None))
+        # Like umqtt.simple, retained messages can be dispatched while subscribing.
+        if topic in self.retained and self.cb:
+            self.cb(topic, self.retained[topic])
 
     def ping(self):
         if self.fail_ping:
@@ -120,6 +127,7 @@ class FakeMQTTClient:
     def clear_history(self):
         self.published[:] = []
         self.subscribed[:] = []
+        self.events[:] = []
         self.pings = 0
 
 
@@ -210,6 +218,39 @@ class UhomeReconnectTests(unittest.TestCase):
         self.assertIn((button.get_topic(), 0), mqtt.subscribed)
         self.assertTrue(self.published_payloads(mqtt, sensor.discovery_topic))
         self.assertIn((sensor.conf["stat_t"], "22", False, 0), mqtt.published)
+
+    def assert_online_published_last(self, mqtt, device, command_topic, discovery_topic, state_topic):
+        events = mqtt.events
+        online = ("publish", device.will_topic, "online")
+        self.assertEqual(1, events.count(online))
+        online_index = events.index(online)
+        self.assertEqual(len(events) - 1, online_index)
+        for topic in (device.ha_status_topic, device.will_topic, command_topic):
+            self.assertIn(("subscribe", topic, None), events[:online_index])
+        self.assertTrue([e for e in events[:online_index] if e[0] == "publish" and e[1] == discovery_topic])
+        self.assertTrue([e for e in events[:online_index] if e[0] == "publish" and e[1] == state_topic])
+
+    def test_online_is_published_after_subscriptions_discovery_and_state(self):
+        device = uhome.Device("Ordering Device")
+        sensor = uhome.Sensor(device, "Temperature")
+        button = uhome.Button(device, "Identify")
+        button.set_action(lambda msg: None)
+        sensor.publish("21")
+        mqtt = FakeMQTTClient()
+
+        self.assertTrue(device.connect(mqtt))
+        self.assert_online_published_last(mqtt, device, button.get_topic(), sensor.discovery_topic, sensor.conf["stat_t"])
+
+        mqtt.fail_publish = True
+        self.assertFalse(sensor.publish("22"))
+        mqtt.fail_publish = False
+        mqtt.clear_history()
+        # After an unclean drop the broker holds the retained "offline" last will and
+        # delivers it when uhome resubscribes to its availability topic.
+        mqtt.retained[device.will_topic] = "offline"
+        self.clock.advance(1000)
+        self.assertTrue(device.loop())
+        self.assert_online_published_last(mqtt, device, button.get_topic(), sensor.discovery_topic, sensor.conf["stat_t"])
 
     def test_ha_birth_rediscovers_and_republishes_state(self):
         device = uhome.Device("Birth Device")

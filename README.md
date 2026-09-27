@@ -88,7 +88,7 @@ In this case `sta` is the network object used to connect to the Wi-Fi network. H
 
 ## Reconnect and availability behavior
 
-uhome publishes a retained `online` message to the device availability topic after every successful connection and configures an `offline` retained last will. After reconnects it restores all subscriptions, re-sends discovery messages, and force re-publishes cached entity states so Home Assistant does not leave entities `unavailable` or `unknown`.
+uhome publishes a retained `online` message to the device availability topic after every successful connection and configures an `offline` retained last will. After reconnects it restores all subscriptions, re-sends discovery messages, and force re-publishes cached entity states so Home Assistant does not leave entities `unavailable` or `unknown`. The `online` message is published last, once subscriptions are restored, so commands Home Assistant sends as soon as the device becomes available are not lost.
 
 Call `device.loop()` frequently from the main loop. Do not call it from timer IRQs: MQTT socket I/O, callbacks, discovery publishing, and reconnects are not IRQ-safe.
 
