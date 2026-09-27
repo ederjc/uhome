@@ -1808,8 +1808,8 @@ class Update(Entity):
             'installed_version': installed_version,
             'latest_version': latest_version,
         }
-        for key in kwargs:
-            payload[key] = kwargs[key]
+        for key, value in kwargs.items():
+            payload[key] = value
         return self._publish_state(json.dumps(payload), self.conf['stat_t'], force=force)
 
     def get_topic(self):

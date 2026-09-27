@@ -1,13 +1,14 @@
 import json
+import os
 import sys
 import unittest
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "uhome"))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "uhome"))
+
+from test_uhome import FakeClock, FakeMQTTClient
 
 import uhome
-from test_uhome import FakeClock, FakeMQTTClient
 
 
 class UpdateTests(unittest.TestCase):
@@ -47,11 +48,14 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(update.conf["stat_t"], topic)
         self.assertFalse(retain)
         self.assertEqual(0, qos)
-        self.assertEqual({
-            "installed_version": "1.0.0",
-            "latest_version": "1.1.0",
-            "title": "Firmware 1.1.0",
-        }, json.loads(payload))
+        self.assertEqual(
+            {
+                "installed_version": "1.0.0",
+                "latest_version": "1.1.0",
+                "title": "Firmware 1.1.0",
+            },
+            json.loads(payload),
+        )
 
     def test_install_command_invokes_action(self):
         device = uhome.Device("Update Device")
