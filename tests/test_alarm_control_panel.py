@@ -1,8 +1,8 @@
 import io
-from contextlib import redirect_stderr
 import unittest
 
-from test_uhome import FakeClock, FakeMQTTClient
+from test_uhome import FakeClock, FakeMQTTClient, _RedirectStderr
+
 import uhome
 
 
@@ -50,7 +50,7 @@ class AlarmControlPanelTests(unittest.TestCase):
         self.assertTrue(device.connect(mqtt))
 
         mqtt.deliver(alarm.get_topic(), 'ARM_AWAY')
-        with redirect_stderr(io.StringIO()):
+        with _RedirectStderr(io.StringIO()):
             self.assertTrue(device.loop())
         self.assertEqual(['ARM_AWAY'], received)
 
