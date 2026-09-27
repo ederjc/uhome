@@ -1,13 +1,14 @@
 import json
+import os
 import sys
 import unittest
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "uhome"))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "uhome"))
+
+from test_uhome import FakeClock, FakeMQTTClient
 
 import uhome
-from test_uhome import FakeClock, FakeMQTTClient
 
 
 class ClimateTests(unittest.TestCase):
