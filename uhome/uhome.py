@@ -1112,8 +1112,8 @@ class DeviceTrigger(Entity):
         conf["device"] = device
         if self.payload is not None:
             conf["payload"] = self.payload
-        for arg in kwargs:
-            conf[arg] = kwargs[arg]
+        for arg, value in kwargs.items():
+            conf[arg] = value
         return conf
 
     def get_topic(self):
