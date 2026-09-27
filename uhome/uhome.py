@@ -1169,8 +1169,8 @@ class TagScanner(Entity):
         conf["device"] = device
         if self.value_template is not None:
             conf["value_template"] = self.value_template
-        for arg in kwargs:
-            conf[arg] = kwargs[arg]
+        for arg, value in kwargs.items():
+            conf[arg] = value
         return conf
 
     def get_topic(self):
