@@ -455,15 +455,10 @@ class UhomeRealBrokerIntegrationTests(unittest.TestCase):
             timeout=5,
             description="device did not re-publish online availability after reconnect",
         )
-        # uhome publishes "online" before restoring subscriptions and only re-sends
-        # discovery once every subscription is acknowledged. Wait for discovery so the
-        # QoS 0 command below cannot race ahead of the command-topic SUBSCRIBE.
-        wait_until(
-            lambda: observer.count(lambda m: m["topic"] == number.discovery_topic) > initial_discovery_messages,
-            timeout=5,
-            description="device did not re-send discovery after restoring subscriptions",
-        )
 
+        # Send the command as soon as "online" is seen, like Home Assistant does. uhome
+        # only announces availability after its subscriptions are restored, so this
+        # QoS 0 command must not be lost.
         observer.publish(number.get_topic(), "13")
         wait_until(
             lambda: received_commands[-1:] == ["13"],
@@ -474,6 +469,11 @@ class UhomeRealBrokerIntegrationTests(unittest.TestCase):
             lambda m: m["topic"] == number.conf["stat_t"] and m["payload"] == "13",
             timeout=5,
             description="device did not publish state after reconnect recovery",
+        )
+        self.assertGreater(
+            observer.count(lambda m: m["topic"] == number.discovery_topic),
+            initial_discovery_messages,
+            "device did not re-send discovery after reconnect",
         )
 
 

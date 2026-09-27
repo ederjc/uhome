@@ -95,6 +95,7 @@ class Device:
         self._subscriptions = {}
         self._connected = False
         self._connecting = False
+        self._restoring = False
         self._disconnect_requested = False
         self._last_ping = ticks_ms()
         self._next_reconnect = ticks_ms()
@@ -311,14 +312,22 @@ class Device:
         self._reconnect_delay = self.reconnect_min_ms
         self._last_ping = ticks_ms()
         self._awaiting_echo = False
+        # Announce availability last: Home Assistant may send commands as soon as it
+        # sees "online", so subscriptions, discovery, and states must be restored first.
+        # While restoring, the retained "offline" last will delivered on resubscribe must
+        # not trigger an early "online" (see _availability_callback).
+        self._restoring = True
+        try:
+            for topic in list(self._subscriptions.keys()):
+                if not self._subscribe_now(topic):
+                    return False
+            self.discover_all()
+            for entity in self._entities:
+                entity.republish()
+        finally:
+            self._restoring = False
         if not self.publish(self.will_topic, 'online', retain=True):
             return False
-        for topic in list(self._subscriptions.keys()):
-            if not self._subscribe_now(topic):
-                return False
-        self.discover_all()
-        for entity in self._entities:
-            entity.republish()
         return self._connected
 
     def _subscribe_now(self, topic):
@@ -433,7 +442,7 @@ class Device:
         if msg == 'online':
             self._last_echo = ticks_ms()
             self._awaiting_echo = False
-        elif msg == 'offline' and self._connected:
+        elif msg == 'offline' and self._connected and not self._restoring:
             self.publish(self.will_topic, 'online', retain=True)
 
 
