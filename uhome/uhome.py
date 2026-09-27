@@ -733,7 +733,6 @@ class Siren(Entity):
             self._action(msg)
 
 
-
 class Sensor(Entity):
     """
     More information about MQTT Sensors: https://www.home-assistant.io/integrations/sensor.mqtt/
