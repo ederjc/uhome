@@ -1,8 +1,8 @@
 import io
-from contextlib import redirect_stderr
 import unittest
 
-from test_uhome import FakeClock, FakeMQTTClient
+from test_uhome import FakeClock, FakeMQTTClient, _RedirectStderr
+
 import uhome
 
 
@@ -55,7 +55,7 @@ class LawnMowerTests(unittest.TestCase):
         mqtt.deliver(mower.get_start_mowing_topic(), 'start_mowing')
         mqtt.deliver(mower.get_pause_topic(), 'pause')
         mqtt.deliver(mower.get_dock_topic(), 'dock')
-        with redirect_stderr(io.StringIO()):
+        with _RedirectStderr(io.StringIO()):
             self.assertTrue(device.loop())
             self.assertTrue(device.loop())
             self.assertTrue(device.loop())

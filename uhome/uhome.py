@@ -1315,6 +1315,7 @@ class AlarmControlPanel(Entity):
         if self._action:
             self._action(msg)
 
+
 class LawnMower(Entity):
     """
     MQTT lawn mower entity.
@@ -1381,4 +1382,3 @@ class LawnMower(Entity):
     def _handle_dock(self, msg):
         if self._dock_action:
             self._dock_action(msg)
-
