@@ -1276,4 +1276,3 @@ class WaterHeater(Entity):
     def _handle_temperature(self, msg):
         if self._temperature_action:
             self._temperature_action(msg)
-
