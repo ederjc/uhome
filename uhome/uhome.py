@@ -1276,6 +1276,8 @@ class WaterHeater(Entity):
     def _handle_temperature(self, msg):
         if self._temperature_action:
             self._temperature_action(msg)
+
+
 class AlarmControlPanel(Entity):
     """
     MQTT alarm control panel entity.
@@ -1312,4 +1314,3 @@ class AlarmControlPanel(Entity):
     def _handle_action(self, msg):
         if self._action:
             self._action(msg)
-
