@@ -1845,8 +1845,7 @@ class DeviceTracker(Entity):
             conf['json_attr_t'] = self.topic_for('attributes')
         return conf
 
-    def publish(self, state, attributes=None, latitude=None, longitude=None,
-                gps_accuracy=None, force=False):
+    def publish(self, state, attributes=None, latitude=None, longitude=None, gps_accuracy=None, force=False):
         """
         Publish home/not_home state and optional JSON attributes.
         """
@@ -1866,4 +1865,3 @@ class DeviceTracker(Entity):
             if not self._publish_state(json.dumps(attrs), self.conf['json_attr_t'], force=force):
                 ok = False
         return ok
-

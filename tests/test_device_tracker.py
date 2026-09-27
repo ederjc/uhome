@@ -1,13 +1,14 @@
 import json
+import os
 import sys
 import unittest
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "uhome"))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "uhome"))
+
+from test_uhome import FakeClock, FakeMQTTClient
 
 import uhome
-from test_uhome import FakeClock, FakeMQTTClient
 
 
 class DeviceTrackerTests(unittest.TestCase):
@@ -56,12 +57,15 @@ class DeviceTrackerTests(unittest.TestCase):
         self.assertEqual(tracker.conf["stat_t"], mqtt.published[0][0])
         self.assertEqual("not_home", mqtt.published[0][1])
         self.assertEqual(tracker.conf["json_attr_t"], mqtt.published[1][0])
-        self.assertEqual({
-            "battery": 87,
-            "latitude": 48.137,
-            "longitude": 11.575,
-            "gps_accuracy": 15,
-        }, json.loads(mqtt.published[1][1]))
+        self.assertEqual(
+            {
+                "battery": 87,
+                "latitude": 48.137,
+                "longitude": 11.575,
+                "gps_accuracy": 15,
+            },
+            json.loads(mqtt.published[1][1]),
+        )
 
     def test_cached_presence_and_attributes_republish_after_reconnect(self):
         device = uhome.Device("Tracker Device")
