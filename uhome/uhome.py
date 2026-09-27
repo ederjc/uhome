@@ -942,7 +942,6 @@ class Light(Entity):
             self._action(command)
 
 
-
 class Number(Entity):
     """
     More information about MQTT Number: https://www.home-assistant.io/integrations/number.mqtt/
