@@ -17,6 +17,7 @@ jobs:
     env:
       MICROPYTHON_TAG: v1.29.0
       UNITTEST_DISCOVER_VERSION: 0.1.3
+      OS_PATH_VERSION: 0.2.0
       MICROPYTHON_DIR: .cache/micropython-v1.29.0
       MICROPYTHON_PACKAGES: .cache/micropython-packages-v1.29.0
       MICROPYTHON_BIN: .cache/micropython-v1.29.0/ports/unix/build-standard/micropython
@@ -40,7 +41,7 @@ jobs:
           path: |
             .cache/micropython-v1.29.0
             .cache/micropython-packages-v1.29.0
-          key: ${{ runner.os }}-micropython-unix-v1.29.0-uhome-v1
+          key: ${{ runner.os }}-micropython-unix-v1.29.0-unittest-discover-0.1.3-os-path-0.2.0-uhome-v2
 
       - name: Build pinned MicroPython unix port
         shell: bash
@@ -60,11 +61,15 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          if [ ! -f "${MICROPYTHON_PACKAGES}/unittest/__main__.py" ]; then
+          # mip installs precompiled .mpy files. os-path provides os.path, which
+          # the MicroPython built-in os module does not include.
+          if [ ! -f "${MICROPYTHON_PACKAGES}/unittest/__main__.mpy" ] || [ ! -f "${MICROPYTHON_PACKAGES}/os/path.mpy" ]; then
             rm -rf "${MICROPYTHON_PACKAGES}"
             mkdir -p "${MICROPYTHON_PACKAGES}"
             "${MICROPYTHON_BIN}" -m mip install --target "${MICROPYTHON_PACKAGES}" "unittest-discover@${UNITTEST_DISCOVER_VERSION}"
+            "${MICROPYTHON_BIN}" -m mip install --target "${MICROPYTHON_PACKAGES}" "os-path@${OS_PATH_VERSION}"
           fi
+          MICROPYPATH="${MICROPYTHON_PACKAGES}" "${MICROPYTHON_BIN}" -c "import os.path; print(os.path.join('a', 'b'))"
 
       - name: Run tests under MicroPython
         shell: bash

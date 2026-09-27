@@ -5,17 +5,25 @@ import unittest
 
 
 class _RedirectStderr:
+    # MicroPython's built-in sys module does not allow reassigning stderr, so
+    # the redirect is best-effort and only suppresses output where supported.
     def __init__(self, new_target):
         self._new_target = new_target
         self._old_target = None
+        self._redirected = False
 
     def __enter__(self):
         self._old_target = sys.stderr
-        sys.stderr = self._new_target
+        try:
+            sys.stderr = self._new_target
+            self._redirected = True
+        except AttributeError:
+            pass
         return self._new_target
 
     def __exit__(self, exc_type, exc_value, traceback):
-        sys.stderr = self._old_target
+        if self._redirected:
+            sys.stderr = self._old_target
         return False
 
 
