@@ -1,13 +1,14 @@
 import json
+import os
 import sys
 import unittest
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "uhome"))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "uhome"))
+
+from test_uhome import FakeClock, FakeMQTTClient
 
 import uhome
-from test_uhome import FakeClock, FakeMQTTClient
 
 
 class CoverTests(unittest.TestCase):
@@ -54,7 +55,12 @@ class CoverTests(unittest.TestCase):
         device = uhome.Device("Shade Device")
         cover = uhome.Cover(device, "Living Shade", position=True)
         seen = []
-        cover.set_action(lambda msg: seen.append(("open", msg)), lambda msg: seen.append(("close", msg)), lambda msg: seen.append(("stop", msg)), lambda msg: seen.append(("position", msg)))
+        cover.set_action(
+            lambda msg: seen.append(("open", msg)),
+            lambda msg: seen.append(("close", msg)),
+            lambda msg: seen.append(("stop", msg)),
+            lambda msg: seen.append(("position", msg)),
+        )
         mqtt = FakeMQTTClient()
         self.assertTrue(device.connect(mqtt))
         mqtt.deliver(cover.conf["cmd_t"], "OPEN")
