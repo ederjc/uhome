@@ -10,6 +10,7 @@
 [![lint](https://github.com/ederjc/uhome/actions/workflows/lint.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/lint.yml)
 ![coverage](https://raw.githubusercontent.com/ederjc/uhome/master/coverage.svg)
 [![MicroPython tests](https://github.com/ederjc/uhome/actions/workflows/test-micropython.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/test-micropython.yml)
+[![MQTT integration](https://github.com/ederjc/uhome/actions/workflows/integration.yml/badge.svg)](https://github.com/ederjc/uhome/actions/workflows/integration.yml)
 
 A MicroPython module for simplified Home Assistant MQTT Auto Discovery.
 
@@ -111,6 +112,17 @@ python -m unittest discover -s tests -v
 GitHub Actions also builds the pinned MicroPython unix port and runs the same
 `tests/test_*.py` files under MicroPython using `mip`-installed
 `unittest-discover`.
+
+To run the broker-backed integration test locally, start a Mosquitto 2.x broker with the
+test config (Mosquitto 2.x only accepts remote/anonymous clients when a listener is
+configured explicitly) and point the test at it:
+
+```
+python -m pip install -r requirements-dev.txt
+docker run --rm -d --name uhome-mosquitto -p 1883:1883 -v "$PWD/tests/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro" eclipse-mosquitto:2.1-alpine
+UHOME_REQUIRE_REAL_BROKER=1 python -m unittest discover -s tests -p test_integration.py -v
+docker stop uhome-mosquitto
+```
 
 ## More Information
 ### Home Assistant
