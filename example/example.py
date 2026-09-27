@@ -1,12 +1,10 @@
 import time
 
 import machine
+import mqtt_secrets
 import network
 import ubinascii
-
-import mqtt_secrets
 import wifi_secrets
-
 
 PIN_BOARD_LED = "P13_7"
 
@@ -31,6 +29,7 @@ def sleep_ms(ms):
 def print_exception(exc):
     try:
         import sys
+
         sys.print_exception(exc)
     except Exception:
         print("Exception: %r" % (exc,))
@@ -155,9 +154,7 @@ wifi_mac = uhome.Sensor(device, "WiFi MAC Address", device_class="enum", entity_
 def publish_static_diagnostics():
     cpu_freq.publish("%.0f" % (machine.freq() / 1000000))
     reset_cause.publish("%s" % machine.reset_cause())
-    wifi_mac.publish(
-        safe_wifi_value(lambda: ubinascii.hexlify(sta.config("mac"), ":").decode().upper())
-    )
+    wifi_mac.publish(safe_wifi_value(lambda: ubinascii.hexlify(sta.config("mac"), ":").decode().upper()))
 
 
 def publish_variable_diagnostics():
