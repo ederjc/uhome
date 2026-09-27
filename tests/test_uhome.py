@@ -3,6 +3,15 @@ import os
 import sys
 import unittest
 
+if not hasattr(unittest.TestCase, "assertNotIn"):
+    # MicroPython-lib's unittest port implements assertIn but not its
+    # counterpart, so tests that check absence need this shim to run there.
+    def _assert_not_in(self, member, container, msg=None):
+        if member in container:
+            self.fail(msg or "%r unexpectedly found in %r" % (member, container))
+
+    unittest.TestCase.assertNotIn = _assert_not_in
+
 
 class _RedirectStderr:
     # MicroPython's built-in sys module does not allow reassigning stderr, so
