@@ -1,8 +1,8 @@
 import io
-from contextlib import redirect_stderr
 import unittest
 
-from test_uhome import FakeClock, FakeMQTTClient
+from test_uhome import FakeClock, FakeMQTTClient, _RedirectStderr
+
 import uhome
 
 
@@ -59,7 +59,7 @@ class WaterHeaterTests(unittest.TestCase):
 
         mqtt.deliver(heater.get_mode_topic(), 'performance')
         mqtt.deliver(heater.get_temperature_topic(), '60')
-        with redirect_stderr(io.StringIO()):
+        with _RedirectStderr(io.StringIO()):
             self.assertTrue(device.loop())
             self.assertTrue(device.loop())
         self.assertEqual([('mode', 'performance'), ('temperature', '60')], received)
