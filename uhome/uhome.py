@@ -1382,6 +1382,8 @@ class LawnMower(Entity):
     def _handle_dock(self, msg):
         if self._dock_action:
             self._dock_action(msg)
+
+
 class Vacuum(Entity):
     """
     MQTT vacuum entity using Home Assistant's state schema.
@@ -1420,8 +1422,8 @@ class Vacuum(Entity):
             payload['battery_level'] = battery_level
         if fan_speed is not None:
             payload['fan_speed'] = fan_speed
-        for key in attributes:
-            payload[key] = attributes[key]
+        for key, value in attributes.items():
+            payload[key] = value
         return self._publish_state(json.dumps(payload), self.conf['stat_t'], force=force)
 
     def publish(self, state, force=False):
@@ -1475,4 +1477,3 @@ class Vacuum(Entity):
     def _handle_clean_segments(self, msg):
         if self._clean_segments_action:
             self._clean_segments_action(msg)
-

@@ -1,9 +1,9 @@
 import io
 import json
-from contextlib import redirect_stderr
 import unittest
 
-from test_uhome import FakeClock, FakeMQTTClient
+from test_uhome import FakeClock, FakeMQTTClient, _RedirectStderr
+
 import uhome
 
 
@@ -62,17 +62,20 @@ class VacuumTests(unittest.TestCase):
         mqtt.deliver(vacuum.get_fan_speed_topic(), 'max')
         mqtt.deliver(vacuum.get_send_command_topic(), '{"command":"map"}')
         mqtt.deliver(vacuum.get_clean_segments_topic(), '["kitchen"]')
-        with redirect_stderr(io.StringIO()):
+        with _RedirectStderr(io.StringIO()):
             self.assertTrue(device.loop())
             self.assertTrue(device.loop())
             self.assertTrue(device.loop())
             self.assertTrue(device.loop())
-        self.assertEqual([
-            ('command', 'start'),
-            ('fan', 'max'),
-            ('send', '{"command":"map"}'),
-            ('segments', '["kitchen"]'),
-        ], received)
+        self.assertEqual(
+            [
+                ('command', 'start'),
+                ('fan', 'max'),
+                ('send', '{"command":"map"}'),
+                ('segments', '["kitchen"]'),
+            ],
+            received,
+        )
 
     def test_command_subscriptions_survive_reconnect(self):
         device = uhome.Device('Vacuum Device')
