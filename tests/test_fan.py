@@ -1,13 +1,14 @@
 import json
+import os
 import sys
 import unittest
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "uhome"))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "uhome"))
+
+from test_uhome import FakeClock, FakeMQTTClient
 
 import uhome
-from test_uhome import FakeMQTTClient, FakeClock
 
 
 class FanTests(unittest.TestCase):
@@ -36,8 +37,7 @@ class FanTests(unittest.TestCase):
 
     def test_discovery_config_includes_optional_feature_topics(self):
         device = uhome.Device("Fan Device")
-        fan = uhome.Fan(device, "Ceiling Fan", percentage=True,
-                        preset_modes=["auto", "sleep"], oscillation=True, direction=True)
+        fan = uhome.Fan(device, "Ceiling Fan", percentage=True, preset_modes=["auto", "sleep"], oscillation=True, direction=True)
         mqtt = FakeMQTTClient()
         self.assertTrue(device.connect(mqtt))
 
@@ -56,8 +56,7 @@ class FanTests(unittest.TestCase):
 
     def test_publishes_state_and_optional_feature_states(self):
         device = uhome.Device("Fan Device")
-        fan = uhome.Fan(device, "Ceiling Fan", percentage=True,
-                        preset_modes=["auto"], oscillation=True, direction=True)
+        fan = uhome.Fan(device, "Ceiling Fan", percentage=True, preset_modes=["auto"], oscillation=True, direction=True)
         mqtt = FakeMQTTClient()
         self.assertTrue(device.connect(mqtt))
         mqtt.clear_history()
@@ -75,8 +74,7 @@ class FanTests(unittest.TestCase):
 
     def test_command_callback_identifies_feature(self):
         device = uhome.Device("Fan Device")
-        fan = uhome.Fan(device, "Ceiling Fan", percentage=True,
-                        preset_modes=["auto"], oscillation=True, direction=True)
+        fan = uhome.Fan(device, "Ceiling Fan", percentage=True, preset_modes=["auto"], oscillation=True, direction=True)
         seen = []
         fan.set_action(lambda feature, msg: seen.append((feature, msg)))
         mqtt = FakeMQTTClient()
@@ -89,18 +87,20 @@ class FanTests(unittest.TestCase):
         mqtt.deliver(fan.conf["dir_cmd_t"], "reverse")
         for _ in range(5):
             self.assertTrue(device.loop())
-        self.assertEqual([
-            ("state", "ON"),
-            ("percentage", "75"),
-            ("preset_mode", "auto"),
-            ("oscillation", "oscillate_off"),
-            ("direction", "reverse"),
-        ], seen)
+        self.assertEqual(
+            [
+                ("state", "ON"),
+                ("percentage", "75"),
+                ("preset_mode", "auto"),
+                ("oscillation", "oscillate_off"),
+                ("direction", "reverse"),
+            ],
+            seen,
+        )
 
     def test_command_subscriptions_survive_reconnect(self):
         device = uhome.Device("Fan Device")
-        fan = uhome.Fan(device, "Ceiling Fan", percentage=True,
-                        preset_modes=["auto"], oscillation=True, direction=True)
+        fan = uhome.Fan(device, "Ceiling Fan", percentage=True, preset_modes=["auto"], oscillation=True, direction=True)
         fan.set_action(lambda feature, msg: None)
         mqtt = FakeMQTTClient()
         self.assertTrue(device.connect(mqtt))

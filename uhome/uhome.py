@@ -1026,8 +1026,7 @@ class Fan(Entity):
     entity_type = 'fan'
     _action = None
 
-    def __init__(self, device, entity_name, percentage=False, preset_modes=None,
-                 oscillation=False, direction=False, **kwargs):
+    def __init__(self, device, entity_name, percentage=False, preset_modes=None, oscillation=False, direction=False, **kwargs):
         self._has_percentage = percentage
         self._preset_modes = preset_modes
         self._has_oscillation = oscillation
@@ -1136,7 +1135,6 @@ class Fan(Entity):
 
     def _handle_direction_command(self, msg):
         self._dispatch('direction', msg)
-
 
 
 class Number(Entity):
