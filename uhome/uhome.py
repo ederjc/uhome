@@ -48,6 +48,7 @@ class Device:
         connect_timeout=10,
         reconnect_min_ms=1000,
         reconnect_max_ms=60000,
+        discovery_refresh_interval_ms=300000,
         **kwargs,
     ):
         """
@@ -62,6 +63,8 @@ class Device:
 
         @param retain_discovery: Retain MQTT discovery messages. Defaults to False.
         @type retain_discovery: bool, optional
+        @param discovery_refresh_interval_ms: Periodic discovery and state refresh interval in milliseconds. Defaults to 300000; set to 0 to disable.
+        @type discovery_refresh_interval_ms: int, optional
 
         @param connect_timeout: Optional socket timeout in seconds for umqtt.simple versions supporting it.
         @type connect_timeout: int, optional
@@ -81,6 +84,8 @@ class Device:
         self.id = self.name.replace(' ', '_').lower()  # TODO: ö, ä, ü, ... not handled!
         self.discovery_prefix = discovery_prefix
         self.retain_discovery = retain_discovery
+        self.discovery_refresh_interval_ms = max(0, int(discovery_refresh_interval_ms))
+        self._next_discovery_refresh = ticks_add(ticks_ms(), self.discovery_refresh_interval_ms)
         self.connect_timeout = connect_timeout
         self.reconnect_min_ms = reconnect_min_ms
         self.reconnect_max_ms = reconnect_max_ms
@@ -252,6 +257,14 @@ class Device:
             self._send_liveness_probe()
         if not self._safe_mqtt_call('check_msg'):
             return False
+        now = ticks_ms()
+        if self.discovery_refresh_interval_ms > 0 and ticks_diff(now, self._next_discovery_refresh) >= 0:
+            self._next_discovery_refresh = ticks_add(now, self.discovery_refresh_interval_ms)
+            if not self.discover_all():
+                return False
+            for entity in self._entities:
+                if not entity.republish():
+                    return False
         return self._connected
 
     def discover_all(self):
@@ -311,6 +324,7 @@ class Device:
         self._connected = True
         self._reconnect_delay = self.reconnect_min_ms
         self._last_ping = ticks_ms()
+        self._next_discovery_refresh = ticks_add(self._last_ping, self.discovery_refresh_interval_ms)
         self._awaiting_echo = False
         # Announce availability last: Home Assistant may send commands as soon as it
         # sees "online", so subscriptions, discovery, and states must be restored first.
@@ -437,6 +451,7 @@ class Device:
             self.discover_all()
             for entity in self._entities:
                 entity.republish()
+            self._next_discovery_refresh = ticks_add(ticks_ms(), self.discovery_refresh_interval_ms)
 
     def _availability_callback(self, msg):
         if msg == 'online':

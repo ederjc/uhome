@@ -466,3 +466,18 @@ docker stop uhome-mosquitto
 - [MQTT Sensor integration](https://www.home-assistant.io/integrations/sensor.mqtt)
 - [MQTT Binary Sensor integration](https://www.home-assistant.io/integrations/binary_sensor.mqtt)
 - [MQTT Number integration](https://www.home-assistant.io/integrations/number.mqtt)
+
+### Periodic discovery refresh
+
+By default, uhome re-sends MQTT discovery messages and cached entity states every five minutes. This helps recover when Home Assistant's non-retained `online` birth message is missed, such as when the MQTT broker starts before Home Assistant.
+
+Configure the interval in milliseconds:
+
+```python
+device = uhome.Device(
+    "Device Name",
+    discovery_refresh_interval_ms=300000,  # five minutes (default)
+)
+```
+
+Set `discovery_refresh_interval_ms=0` to disable periodic refresh. Reconnect recovery and Home Assistant `online` status recovery continue to work independently.
