@@ -274,6 +274,76 @@ class UhomeReconnectTests(unittest.TestCase):
         self.assertTrue(self.published_payloads(mqtt, sensor.discovery_topic))
         self.assertIn((sensor.conf["stat_t"], "20", False, 0), mqtt.published)
 
+    def test_discovery_is_retained_when_enabled(self):
+        device = uhome.Device("Retained Discovery Device", retain_discovery=True)
+        sensor = uhome.Sensor(device, "Temperature")
+        mqtt = FakeMQTTClient()
+
+        self.assertTrue(device.connect(mqtt))
+
+        discovery_messages = [message for message in mqtt.published if message[0] == sensor.discovery_topic]
+        self.assertTrue(discovery_messages)
+        self.assertTrue(all(message[2] is True for message in discovery_messages))
+
+    def test_periodic_refresh_waits_for_configured_interval(self):
+        device = uhome.Device(
+            "Refresh Timing Device",
+            discovery_refresh_interval_ms=5000,
+        )
+        sensor = uhome.Sensor(device, "Temperature")
+        mqtt = FakeMQTTClient()
+
+        self.assertTrue(device.connect(mqtt))
+        sensor.publish("20")
+        mqtt.clear_history()
+
+        self.clock.advance(4999)
+        self.assertTrue(device.loop())
+        self.assertFalse(self.published_payloads(mqtt, sensor.discovery_topic))
+
+        self.clock.advance(1)
+        self.assertTrue(device.loop())
+        self.assertTrue(self.published_payloads(mqtt, sensor.discovery_topic))
+
+    def test_periodic_refresh_can_be_disabled(self):
+        device = uhome.Device(
+            "No Refresh Device",
+            discovery_refresh_interval_ms=0,
+        )
+        sensor = uhome.Sensor(device, "Temperature")
+        mqtt = FakeMQTTClient()
+
+        self.assertTrue(device.connect(mqtt))
+        sensor.publish("20")
+        mqtt.clear_history()
+
+        self.clock.advance(600000)
+        self.assertTrue(device.loop())
+        self.assertFalse(self.published_payloads(mqtt, sensor.discovery_topic))
+        self.assertNotIn(
+            (sensor.conf["stat_t"], "20", False, 0),
+            mqtt.published,
+        )
+
+    def test_periodic_refresh_recovers_when_ha_birth_is_missed(self):
+        device = uhome.Device(
+            "Refresh Device",
+            discovery_refresh_interval_ms=5000,
+        )
+        sensor = uhome.Sensor(device, "Temperature")
+        mqtt = FakeMQTTClient()
+
+        self.assertTrue(device.connect(mqtt))
+        sensor.publish("20")
+        mqtt.clear_history()
+
+        # Home Assistant's online birth message is missed.
+        self.clock.advance(5000)
+        self.assertTrue(device.loop())
+
+        self.assertTrue(self.published_payloads(mqtt, sensor.discovery_topic))
+        self.assertIn((sensor.conf["stat_t"], "20", False, 0), mqtt.published)
+
     def test_own_lwt_offline_republishes_online(self):
         device = uhome.Device("Availability Device")
         mqtt = FakeMQTTClient()
